@@ -152,6 +152,8 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
         self.treeView.setColumnWidth(1, 5)
         self.reset_model()
         self.treeView.doubleClicked.connect(self.select_model_item)
+        self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.treeView.customContextMenuRequested.connect(self.openEcuContextMenu)
 
         self.previous_file_name = None  # used for quick save
 
@@ -276,9 +278,11 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
             ecu_item.setEditable(False)
             tmp_item = QtGui.QStandardItem("")
             tmp_item.setEditable(False)
+            pcb_item = None
             for pcb_name, pcb in pcbs.items():
                 pcb_item = QtGui.QStandardItem(pcb_name)
                 pcb_item.setEditable(False)
+                ps_item = None
                 for pos, image in pcb.items():
                     pos_item = QtGui.QStandardItem(pos)
                     pos_item.setEditable(False)
@@ -291,11 +295,9 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                         font = pos_item.font()
                         font.setBold(True)
                         pos_item.setFont(font)
-                        self.current_model_index = pos_item.index()
-                    pcb_item.appendRow([pos_item, count_item])
-            ecu_item.appendRow([pcb_item, tmp_item])
-            self.model.appendRow([ecu_item, tmp_item])
-        self.treeView.scrollTo(self.current_model_index)
+                    if pos_item: pcb_item.appendRow([pos_item, count_item])
+            if pcb_item: ecu_item.appendRow([pcb_item, tmp_item])
+            self.model.appendRow([ecu_item])
         traverse_tree(self.model.invisibleRootItem(), self.treeView, expanded=expanded, parent_index=None, action="set")
 
     def display_grid(self, display):
@@ -647,6 +649,22 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
         action_rename = menu.addAction("Rename")
         action_rename.triggered.connect(lambda: self.inputDialog.setNames(index))
         menu.exec_(self.sender().viewport().mapToGlobal(position))
+
+    def openEcuContextMenu(self, position):
+        indexes = self.sender().selectedIndexes()
+        index = self.treeView.indexAt(position)
+        if not index.isValid() or index.column() != 0:
+            return
+        nodes = []
+        while index.isValid():
+            nodes.insert(0, index.data())
+            index = index.parent()
+        menu = QMenu()
+        action_rename = menu.addAction("Remove")
+        action_rename.triggered.connect(lambda: self.canvas.remove_from_ecus(nodes))
+        menu.exec_(self.sender().viewport().mapToGlobal(position))
+        self.display_count_tree()
+        self.display_classes()
 
     def update_point_count(self, image_name, class_name, count):
         if image_name not in self.canvas.points:

@@ -141,7 +141,8 @@
           "y": 973.6225854383358
         }
       ]
-    }
+    },
+    "front - Kopie.jpg": {}
   },
   "colors": {
     "Capacitor #1": [
@@ -164,12 +165,17 @@
     "front.jpg": {
       "x": "",
       "y": ""
+    },
+    "front - Kopie.jpg": {
+      "x": "",
+      "y": ""
     }
   },
   "ecus": {
     "ECU 1": {
       "PCB 1": {
-        "Top": "front.jpg"
+        "Top": "front.jpg",
+        "Bottom": "front - Kopie.jpg"
       }
     }
   },

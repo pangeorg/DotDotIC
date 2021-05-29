@@ -107,6 +107,7 @@ class ECUInputDialog(QDialog, ECU_DIALOG):
 
     def run(self, image):
         self.image = image
+        self.setWindowTitle(image)
         ecu_names  = list(self.canvas.ecus.keys())
         if len(ecu_names) == 0:
             self.ecu_comboBox.addItem("ECU 1")
@@ -396,7 +397,8 @@ class Canvas(QtWidgets.QGraphicsScene):
                     self.reset()
                     self.load(drop_list)
         elif ".pnt" in peek:
-            self.load_points(peek)
+            self.reset()
+            self.load_points(peek, initial_load=True)
             recentlyUsed.add_file(peek)
         else:
             base_path = os.path.split(peek)[0]
@@ -429,21 +431,13 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.directory_set.emit(self.directory)
             self.load_images(drop_list)
 
-    def load_image(self, in_file_name):
+    def load_image(self, in_file_name, initial_load=False):
         Image.MAX_IMAGE_PIXELS = 1000000000
         file_name = in_file_name
         if type(file_name) == QtCore.QUrl:
             file_name = in_file_name.toLocalFile()
         
         image = os.path.basename(file_name)
-        if image in self.points:
-            msg = QtWidgets.QMessageBox()
-            msg.setIcon(QtWidgets.QMessageBox.Critical)
-            msg.setText("Error")
-            msg.setInformativeText('Image already loaded!')
-            msg.setWindowTitle("Error")
-            msg.exec_()
-            return
         ecu_name, pcb_name, pos = self.get_ecu_info(image)
         if not ecu_name: 
             self.ecu_dialog.run(image)
@@ -582,7 +576,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         path = os.path.split(file_name)[0]
         if self.points.keys():
             path = os.path.join(path, list(self.points.keys())[0])
-            self.load_image(path)
+            self.load_image(path, initial_load=True)
         recentlyUsed.add_file(file_name)
 
     def measure_area(self, rect):
@@ -758,6 +752,37 @@ class Canvas(QtWidgets.QGraphicsScene):
             elif old_class in self.points[image]:
                 self.points[image][new_class] = self.points[image].pop(old_class)
         self.current_class_name = new_class
+        self.display_points()
+
+    def get_images_in_ecu(self, ecuname):
+        names = []
+        pcbs = self.ecus[ecuname]
+        for pcb_names, positions in pcbs.items():
+            for image, pos in positions.items():
+                names.append(image)
+        return names
+
+    def remove_from_ecus(self, nodes):
+        n = len(nodes)
+        if not n:
+            return
+        elif n == 1: # remove whole ecu:
+            images = self.get_images_in_ecu(nodes[0])
+            del self.ecus[nodes[0]]
+            for image in images:
+                del self.points[image]
+        elif n == 2:
+            images = list(self.ecus[nodes[0]][nodes[1]].values())
+            for image in images:
+                del self.points[image]
+            del self.ecus[nodes[0]][nodes[1]]
+        else:
+            image = self.ecus[nodes[0]][nodes[1]][nodes[2]]
+            del self.points[image]
+            del self.ecus[nodes[0]][nodes[1]][nodes[2]]
+        if self.current_image_name not in self.points:
+            self.current_image_name = None
+            self.clear()
         self.display_points()
         
     def remove_class(self, name):

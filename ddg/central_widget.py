@@ -38,6 +38,7 @@ class LineEdit(QtWidgets.QLineEdit):
 
     def __init__(self, parent=None, available_actions=["Copy", "Copy All Details", "Paste", "Paste All Details", "Convert To Uppercase"]):
         super().__init__(parent)
+        self.setFrame(False)
         self.available_actions = available_actions
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.createMenu)
@@ -113,6 +114,14 @@ class LineEdit(QtWidgets.QLineEdit):
         text = self.text().replace(text, "")
         self.setText(text)
         self.textEdited.emit(text)
+
+    def focusInEvent(self, a0):
+        self.setFrame(True)
+        return super().focusInEvent(a0)
+
+    def focusOutEvent(self, a0):
+        self.setFrame(False)
+        return super().focusOutEvent(a0)
 
     def paste_one(self):
         clipboard = QtWidgets.QApplication.clipboard()
