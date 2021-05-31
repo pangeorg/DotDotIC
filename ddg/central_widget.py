@@ -188,7 +188,7 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
                      "lineEdit_partnumber", "lineEdit_manufacturer", "lineEdit_package", 
                      "lineEdit_length", "lineEdit_width", "lineEdit_height", "lineEdit_pincount"]
 
-        attributes = ["Description", "Marking", "Partnumber", "Manufacturer", "Package", "Length",
+        self.attribute_names = ["Description", "Marking", "Partnumber", "Manufacturer", "Package", "Length",
                       "Width", "Height", "IO/Pin Count"]
 
         for i, k in enumerate(self.dataLineEditsNames):
@@ -244,15 +244,16 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
             sizePolicy.setVerticalStretch(0)
             sizePolicy.setHeightForWidth(label.sizePolicy().hasHeightForWidth())
             label.setSizePolicy(sizePolicy)
-            label.setText(_translate("CentralWidget", attributes[i]))
+            label.setText(_translate("CentralWidget", self.attribute_names[i]))
             layout.addWidget(label, i, 0, 1, 1)
 
-            self.lineEdit_attributes[attributes[i]] = lineEdit
+            self.lineEdit_attributes[self.attribute_names[i]] = lineEdit
             setattr(self, k, lineEdit)
             setattr(self, k.replace("lineEdit", "label"), label)
 
         self.lineEdits = self.dataLineEditsNames.copy()
         self.lineEdits.extend(self.attributeLineEditsNames)
+        self.set_tool_tips()
 
         package_completer = QtWidgets.QCompleter(completion.packages)
         package_completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
@@ -408,6 +409,16 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         name = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select image folder', self.canvas.directory)
         if name != '':
             self.canvas.load([QtCore.QUrl('file:{}'.format(name))])
+
+    def set_tool_tips(self):
+        self.lineEdit_ecu.setToolTip("ECU name of active PCB. To change name hit 'Enter'")
+        self.lineEdit_pcb.setToolTip("Name of active PCB. To change name hit 'Enter'")
+        self.lineEditX.setToolTip("Width of active PCB. Saved when edited")
+        self.lineEditY.setToolTip("Width of active PCB. Saved when edited")
+        for attr, edit in zip(self.attribute_names, self.attributeLineEditsNames):
+            widget = getattr(self, edit)
+            widget.setToolTip("{:} of active component. Saved when text changed.".format(attr))
+
 
     def update_pcb_info(self, info):
         x = self.lineEditX.text()

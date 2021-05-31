@@ -77,14 +77,13 @@ class InputDialog(QDialog, DIALOG):
             self.classEdit.setEnabled(True)
             self.classEdit.setText(self.classname)
         self.categoryBox.lineEdit().setText(self.category)
-        self.show()
+        return self.exec_()
 
     def ok(self):
         new_category = self.categoryBox.currentText()
         new_classname = self.classEdit.text()
         self.point_widget.rename(self.index, self.category, self.classname, new_category, new_classname)
         self.close()
-
 
 class ItemModel(QtGui.QStandardItemModel):
     update_tree = QtCore.pyqtSignal(str, str, int)
@@ -145,11 +144,11 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
 
         # model for pictures
         self.model = QtGui.QStandardItemModel()
-        self.model.setHorizontalHeaderLabels(['Imagename', 'Total Count'])
+        self.model.setHorizontalHeaderLabels(['Projet Structure', 'Total Count'])
         self.current_model_index = QtCore.QModelIndex()
         self.treeView.setModel(self.model)
-        self.treeView.setColumnWidth(0, 250)
-        self.treeView.setColumnWidth(1, 5)
+        self.treeView.setColumnWidth(0, 270)
+        self.treeView.setColumnWidth(1, 10)
         self.reset_model()
         self.treeView.doubleClicked.connect(self.select_model_item)
         self.treeView.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -455,6 +454,10 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                         self.inputDialog.close()
                         return
             elif new_classname != classname and new_category == category and new_classname != "":
+                if new_classname in self.canvas.classes:
+                    dialog = QtWidgets.QMessageBox.question(self, "Choose different class name", "Component "+ new_classname +" already taken", QtWidgets.QMessageBox.Ok)
+                    self.inputDialog.close()
+                    return
                 if classname in self.canvas.classes:
                     self.canvas.rename_class(classname, new_classname)
             self.display_classes()
@@ -472,8 +475,10 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
         self.current_model_index = QtCore.QModelIndex()
         self.model.clear()
         self.model.setColumnCount(2)
-        self.model.setHeaderData(0, QtCore.Qt.Horizontal, 'Image')
+        self.model.setHeaderData(0, QtCore.Qt.Horizontal, 'Project Structure')
         self.model.setHeaderData(1, QtCore.Qt.Horizontal, 'Count')
+        self.treeView.setColumnWidth(0, 270)
+        self.treeView.setColumnWidth(1, 10)
 
     def remove_class(self):
         indexes = self.classTree.selectedIndexes()

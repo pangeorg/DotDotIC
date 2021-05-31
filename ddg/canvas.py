@@ -238,7 +238,7 @@ class Canvas(QtWidgets.QGraphicsScene):
                     points[class_name].remove(point)
                     count = 0
                     for image in self.points.keys():
-                        count += len(self.points[image][class_name])
+                        count += len(self.points[image].get(class_name, []))
                     self.update_point_count.emit(self.current_image_name, class_name, count)
                 self.selection = []
                 self.display_points()
@@ -738,7 +738,8 @@ class Canvas(QtWidgets.QGraphicsScene):
         classes = self.data[category]
         index  = classes.index(old_class)
         classes.pop(index)
-        classes.insert(index, new_class)
+        if not new_class in self.classes:
+            classes.insert(index, new_class)
         self.data[category] = classes
         self.colors[new_class] = self.colors.pop(old_class)
         self.class_visibility[new_class] = self.class_visibility[old_class]
@@ -758,7 +759,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         names = []
         pcbs = self.ecus[ecuname]
         for pcb_names, positions in pcbs.items():
-            for image, pos in positions.items():
+            for pos, image in positions.items():
                 names.append(image)
         return names
 

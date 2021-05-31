@@ -9,30 +9,22 @@ Ersts,P.J.[Internet] DotDotGoose (version 1.5.1). American Museum of Natural His
 .. image:: CBC-AMNH-Logo.jpg
     :align: center
 
-DotDotGoose is a free, open source tool to assist with manually counting objects in images. DotDotGoose was purpose-built since 
-most conservation researchers and practitioners working on counting objects in images were using software such as Adobe Photoshop and ImageJ 
-which are not ideally suited for many conservation applications. 
+DotDotIC is a free, open source tool to assist with manually counting components on pcbs. 
 
-The DotDotGoose interface makes it easy to create and edit classes of objects 
-to be counted and you can pan and zoom to accurately place points to identify individual objects. Information about objects can be stored in 
-custom fields and this metadata can be exported for use in spreadsheet or statistics software.
-
-Point data collected with DotDotGoose will be very valuable training and validation data for any future efforts with computer assisted counting.
-
-| Website: https://biodiversityinformatics.amnh.org/open_source/dotdotgoose
-|
-| Source: https://github.com/persts/DotDotGoose
+The DotDotIC interface makes it easy to create and edit classes of components
+to be counted and you can pan and zoom to accurately place points to identify individual objects. Information about components can be stored in 
+dedicated fields and this metadata can be exported for use in spreadsheet or statistics software.
 
 .. raw:: latex
 
     \section*{License}
 
-DotDotGoose is free software: you can redistribute it and/or modify
+DotDotIC is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-DotDotGoose is distributed in the hope that it will be useful,
+DotDotIC is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
@@ -49,16 +41,16 @@ User Interface
 The user interface has four main components.
 
 Class Editor [1]
-    This component allows you to add and delete "classes" for your survey.
+    This component allows you to add and delete categories and components for your project.
 
 Point Summary [2]
-    This component will display the images you have annotated and a summary of points counts by class. Double clicking on an image name in the summary window will automatically load that image and display the associated points and image data.
+    This component will display the images you have annotated and a summary of points counts by component. Double clicking on an image name in the summary window will automatically load that image and display the associated points and image data.
 
 Image Display [3]
     This component will display your current image and the points associated with that image.
 
 Image Data [4]
-    This component allows you to store x and y coordinates (e.g. UTM coordinates or Latitude Longitude coordinates) and add custom fields for storing additional information (e.g., comments) that are specific to each image in your survey.
+    This component allows you to store pcb and component details such as names and dimensions. The PCB Data fields can be edited to change name and placement in the projects structure by hitting enter.
 
 |
 |
@@ -73,32 +65,33 @@ Image Data [4]
 
 Preparing Data
 ==============
-DotDotGoose was designed to work on a single directory of images at a time, which is a typical way of storing data from surveys or data collection events.
+DotDotIC was designed to work on a single directory of images at a time, which is a typical way of storing data from surveys or data collection events.
 
 .. figure:: folder_structure.png
 
-    Simple folder structure expected by DotDotGoose.
+    Simple folder structure expected by DotDotIC
 
 
-DotDotGoose does not save the full image path in the project (pnt) file enabling you to easily move data around on your hard drive. 
+DotDotIC does not save the full image path in the project (pnt) file enabling you to easily move data around on your hard drive. 
 As a result, you must save the project file in the same directory as your images.
-Furthermore, DotDotGoose will display an error message if you attempt to load images that are outside of the current working directory.
+Furthermore, DotDotIC will display an error message if you attempt to load images that are outside of the current working directory.
 
 The working directory is automatically set when you,
 
     1. Load an existing project file, or
     2. Drag the first image(s) into the Image Display component, or
     3. Drag a folder of images into the Image Display component, or
-    4. Click the folder icon to load a folder of images.
+    4. Drag a .pnt file into the Image Display component, or
+    5. Click the folder icon to load a folder of images.
 
 For example, if you start a new counting project by dragging in IMG_0007.JPG (Fig 2) **Survey 1** will become the working directory. You can also 
 start a new counting project by dragging in the folder **Survey 1**. Attempting use an image from any other location other than **Survey 1** 
-will result in an error message until your restart DotDotGoose or press the reset button.
+will result in an error message until your restart DotDotIC or press the reset button.
 
 Image Formats
 =============
 
-DotDotGoose should be able to load most single and three channel image formats and has been tested on images up to 1.5GB. 
+DotDotIC should be able to load most single and three channel image formats and has been tested on images up to 1.5GB. 
 
 *Note: Your computer's available RAM will be the limiting factor when loading very large images*
 
@@ -122,16 +115,15 @@ To begin collecting points,
 
     \section*{Tips and Notes}
 
-* You can use the up arrow or W and the down arrow or S keys on your keyboard to cycles through the images loaded in a project.
-* You can quickly switch between classes using the number keys. **If using the key pad name sure Num Lock is on.
 * While panning or zooming you can press the 'd' key to toggle the points on and off.
 * You can change the size of the points being displayed by adjusting the "Point Radius" value. To change this value, use the up and down arrows on the input field.
 * You can change the default "active" class color from yellow to a color of your choice by clicking on the box next to the "Point Radius" input field.
 * A grid is overlaid on the image to help focus your attention while counting. You can change the size of the grid and color of the grid.
 * While panning or zooming you can press the 'g' key to toggle the grid on and off.
-* While you can use a track pad with DotDotGoose, it is highly recommended that you use a two button mouse with a scroll wheel.
+* While you can use a track pad with DotDotIC, it is highly recommended that you use a two button mouse with a scroll wheel.
 * Point placement can be important for future uses of these count data so it is recommended that you carefully and consistently place your points.
-* If you have several surveys that will have the same classes and custom fields, before you start collecting points you can click the [Import] button and select an existing project file as a template to load the classes and any custom fields.
+* Selecting "Edit Measurements" changes to a meassuring mode. Pressing "C" and drawing a rectangle around the pcb in the image opens a window for calibrating the length of the pcb. 
+This sets a new scale visible in the bottom right corner of the application. Now pressing "M" and again drawing rectangles, markers with the respective height and width are drawn and indicated.
 
 Editing Points and Classes
 ==========================
@@ -149,38 +141,17 @@ Relabeling Points
     3. Once you release the mouse button the selected points will be highlighted with a red halo.
     4. Press the 'r' key to relabel the selected points to the active class.
 
-Rename Class
+Rename Class/Category
 ------------
-Double click the class name in the class editor and enter a new name.
+Double click the class name in the class editor and enter a new name. Here you can also change the components category.
 
-Merging Classes
----------------
-If you originally create two classes and later decide that the two classes should really have been one class, you can simply rename the second class to that of the first and they two classes will be merged.
+Rename ECU/PCB/ Top/Bottom
+------------
+Edit the text field in the PCB Data box and hit "Enter" which will commit the chaage to the name.
 
 .. raw:: latex
 
     \newpage
-
-Adding Custom Fields
-====================
-Adding custom fields allow you to store additional image specific data (e.g., quality or comments) for each image in your survey. Custom fields allow you to completely work within DotDotGoose rather than having to have a separate file for database for storing information and then later merging the count data with the this extra information. 
-
-Adding a Custom Field
----------------------
-    1. Click the [Add Field] button to open the Add Custom Field dialog.
-    2. Enter the name for the field.
-    3. Select line or box from the pulldown to determine the type of field.
-
-        * line - a single line field that is useful for numeric values or short text.
-        * box - a text box that allows multi line input such as comments or notes.
-
-    4. Click the [Save] button to add the field.
-
-Deleting Custom Fields
-----------------------
-    1. Click the [Delete Field] button to open the Delete Custom Field dialog.
-    2. Select the field you would like to remove from the pull down menu.
-    3. Click the [Delete] button. *Note: This will remove the custom field and existing data in it for the active project*
 
 Saving and Loading Point Data
 =============================
@@ -232,84 +203,3 @@ Chips
 -----
 This option will export a chip or subimage centered on each point with a width and height of your choosing. 
 A directory will be created for each class in your project. The directory selected for exporting image chips must be empty.
-
-.. raw:: latex
-
-    \newpage
-
-Schema
-======
-
-The project (pnt) file is a JSON object with an array and five dictionaries. 
-
-.. code-block:: python
-
-    {
-        "classes": [str],
-        "points": {
-            "image_name": {
-                "class_name": [point]
-            }
-        },
-        "colors": {
-            "class_name": [ int, int, int]
-        },
-        "metadata": {
-            "survey_id": str,
-            "coordinates": {
-                "image_name": {
-                    "x": str, # String to allow any coordinate format
-                    "y": str  
-                }
-            }
-        },
-        "custom_fields": {
-            "fields": [field_def],
-            "data": {
-                "filed_name": {
-                    "image_name": str
-                }
-            }
-        },
-        "ui": {
-            "grid": {
-                "size": int,
-                "color": [int, int, int]
-            },
-            "point": {
-                "radius": int,
-                "color": [int, int, int]
-            }
-        }
-    }
-
-    point: {
-        "x": float, # pixel coordiantes
-        "y": float  # pixel coordinates
-    }
-
-    field_def: [ str, str]
-
-
-
-.. raw:: latex
-
-    \newpage
-    \section*{Acknowledgments}
-
-I would like to thank the following people for beta testing and the feedback they have provided:
-
-    * Rochelle Thomas and RF Rockwell from the `Hudson Bay Project <http://research.amnh.org/~rfr/hbp/>`_
-    * Ned Horning, `Center for Biodiversity and Conservation <https://www.amnh.org/research/center-for-biodiversity-conservation>`_, American Museum of Natural History
-    * Felicity Arengo, `Center for Biodiversity and Conservation <https://www.amnh.org/research/center-for-biodiversity-conservation>`_, American Museum of Natural History
-    * Heather Lynch, `Lynch Lab for Quantitative Ecology <https://lynchlab.com/>`_, Stony Brook University
-    * `Jarrod Hodgson <http://www.jarrodhodgson.com.au/>`_ , University of Adelaide
-    * Emily Kelsey, `Western Ecological Research Center <https://www.usgs.gov/centers/werc>`_, U.S. Geological Survey
-    * Louise Wilson, `Leigh Marine Laboratory <https://www.auckland.ac.nz/en/science/about-the-faculty/university-reserves/leigh-marine-laboratory.html>`_, The University of Auckland
-    * Kalinka Rexer-Huber, `Parker Conservation <https://www.parkerconservation.co.nz/>`_
-    * Richard Casalina Jr., `Values-in-Action Foundation <http://www.viafdn.org/>`_
-    * Peter Frost, Freelancer, New Zealand
-    * Ido Senesh [ code contributor ], `Bumblebee <https://pollination.ai/>`_
-
-
-The image used in this documentation is courtesy of the Hudson Bay Project 
