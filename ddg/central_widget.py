@@ -210,7 +210,7 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
                 widget.addItems(["Top", "Bottom"])
                 widget.setDisabled(True)
                 widget.setCurrentIndex(0)
-                widget.currentTextChanged.connect(self.update_ecu_name)
+                widget.activated.connect(self.update_ecu_name)
             layout.addWidget(widget, i, 1, 1, 1)
 
             label = QtWidgets.QLabel(box)

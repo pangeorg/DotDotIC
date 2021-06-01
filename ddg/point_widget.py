@@ -249,7 +249,8 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                         invisible.append(class_name)
                     count = 0
                     for image in self.canvas.points.keys():
-                        count += len(self.canvas.points[image].get(class_name, []))
+                        if image == self.canvas.current_image_name:
+                            count += len(self.canvas.points[image].get(class_name, []))
                     class_count_item.setData(str(count), QtCore.Qt.EditRole)
                     total_count += count
                     category_item.appendRow([class_item, class_count_item, class_color_item])

@@ -108,7 +108,8 @@ class ECUInputDialog(QDialog, ECU_DIALOG):
     def run(self, image):
         self.image = image
         self.setWindowTitle(image)
-        ecu_names  = list(self.canvas.ecus.keys())
+        ecu_names = list(self.canvas.ecus.keys())
+        self.ecu_comboBox.model().clear()
         if len(ecu_names) == 0:
             self.ecu_comboBox.addItem("ECU 1")
         else:
