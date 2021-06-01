@@ -398,7 +398,7 @@ class Canvas(QtWidgets.QGraphicsScene):
                     self.load(drop_list)
         elif ".pnt" in peek:
             self.reset()
-            self.load_points(peek, initial_load=True)
+            self.load_points(peek)
             recentlyUsed.add_file(peek)
         else:
             base_path = os.path.split(peek)[0]
@@ -431,7 +431,7 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.directory_set.emit(self.directory)
             self.load_images(drop_list)
 
-    def load_image(self, in_file_name, initial_load=False):
+    def load_image(self, in_file_name):
         Image.MAX_IMAGE_PIXELS = 1000000000
         file_name = in_file_name
         if type(file_name) == QtCore.QUrl:
@@ -576,7 +576,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         path = os.path.split(file_name)[0]
         if self.points.keys():
             path = os.path.join(path, list(self.points.keys())[0])
-            self.load_image(path, initial_load=True)
+            self.load_image(path)
         recentlyUsed.add_file(file_name)
 
     def measure_area(self, rect):

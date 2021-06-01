@@ -281,7 +281,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
             for pcb_name, pcb in pcbs.items():
                 pcb_item = QtGui.QStandardItem(pcb_name)
                 pcb_item.setEditable(False)
-                ps_item = None
+                pos_item = None
                 for pos, image in pcb.items():
                     pos_item = QtGui.QStandardItem(pos)
                     pos_item.setEditable(False)
@@ -295,7 +295,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                         font.setBold(True)
                         pos_item.setFont(font)
                     if pos_item: pcb_item.appendRow([pos_item, count_item])
-            if pcb_item: ecu_item.appendRow([pcb_item, tmp_item])
+                if pcb_item: ecu_item.appendRow([pcb_item, tmp_item])
             self.model.appendRow([ecu_item])
         traverse_tree(self.model.invisibleRootItem(), self.treeView, expanded=expanded, parent_index=None, action="set")
 
