@@ -667,10 +667,21 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
             index = index.parent()
         menu = QMenu()
         action_rename = menu.addAction("Remove")
-        action_rename.triggered.connect(lambda: self.canvas.remove_from_ecus(nodes))
+        action_rename.triggered.connect(lambda: self.remove_from_ecus(nodes))
         menu.exec_(self.sender().viewport().mapToGlobal(position))
         self.display_count_tree()
         self.display_classes()
+
+    def remove_from_ecus(self, nodes):
+        msgBox = QtWidgets.QMessageBox()
+        msgBox.setWindowTitle('Warning')
+        msgBox.setText('You are about to remove parts from an ECU')
+        msgBox.setInformativeText('Do you want to continue?')
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.Ok)
+        msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
+        response = msgBox.exec()
+        if response == QtWidgets.QMessageBox.Ok:
+            self.canvas.remove_from_ecus(nodes)
 
     def update_point_count(self, image_name, class_name, count):
         if image_name not in self.canvas.points:

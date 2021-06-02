@@ -265,7 +265,7 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         self.lineEdit_manufacturer.setCompleter(manufacturer_completer)
         manufacturer_completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
 
-        self.pushButtonFolder.clicked.connect(self.select_folder)
+        # self.pushButtonFolder.clicked.connect(self.select_folder)
         self.pushButtonZoomOut.clicked.connect(self.graphicsView.zoom_out)
         self.pushButtonZoomIn.clicked.connect(self.graphicsView.zoom_in)
 

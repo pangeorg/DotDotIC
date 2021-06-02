@@ -31,7 +31,7 @@ from ddg.canvas import EditStyle, recentlyUsed
 from ddg import __version__
 
 # _TITLE_STRING = 'DotDotGoose [v {}] - Center for Biodiversity and Conservation ( http://cbc.amnh.org )'.format(__version__)
-_TITLE_STRING = 'DotDotIC [v {}] - ECS / A2MAC1 '.format(__version__)
+_TITLE_STRING = 'DotDotIC [v {}] - ECS / A2MAC1'.format(__version__)
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -45,6 +45,9 @@ class MainWindow(QMainWindow):
 
         self._createActions()
         self._createMenuBar()
+
+        self._centralWidget.canvas.points_loaded.connect(self.update_title)
+        self._centralWidget.pushButtonFolder.clicked.connect(self.select_folder)
     
     def _createMenuBar(self):
         import os
@@ -66,7 +69,7 @@ class MainWindow(QMainWindow):
             for f in recentlyUsed.files:
                 fname = os.path.basename(f)
                 action = QAction(f, self)
-                action.triggered.connect(partial(self._centralWidget.canvas.load_points, f))
+                action.triggered.connect(partial(self.load_points, f))
                 recentlyUsedMenu.addAction(action)
 
         fileMenu.addMenu(recentlyUsedMenu)
@@ -117,6 +120,13 @@ class MainWindow(QMainWindow):
         self.editMeasureAction.triggered.connect(self.set_edit_rects)
         self._centralWidget.rectsToolButton.setDefaultAction(self.editMeasureAction)
 
+    def load_points(self, filename):
+        if self.check_save():
+            self._centralWidget.canvas.load_points(filename)
+
+    def select_folder(self):
+        if self.check_save():
+            self._centralWidget.select_folder()        
 
     def display_info(self):
         dialog = QDialog(self)
@@ -177,8 +187,9 @@ class MainWindow(QMainWindow):
         _ = dialog.show()
     
     def load(self):
-        self._centralWidget.point_widget.load()
-        self.set_edit_points()
+        if self.check_save():
+            self._centralWidget.point_widget.load()
+            self.set_edit_points()
 
     def set_edit_points(self):
         self.editPointsAction.setChecked(True)
@@ -194,6 +205,28 @@ class MainWindow(QMainWindow):
         self._centralWidget.rectsToolButton.setChecked(True)
         self._centralWidget.canvas.set_edit_style(EditStyle.RECTS)
 
+    def update_title(self, survey_id, filename):
+        self.setWindowTitle("{:} --- {:}".format(_TITLE_STRING, filename))
+
+    def check_save(self):
+        if not self._centralWidget.canvas.state_changed:
+            return True
+        msgBox = QtWidgets.QMessageBox()
+        msgBox.setWindowTitle('Warning')
+        msgBox.setText('You have unsaved changes')
+        msgBox.setInformativeText('Do you want to continue?')
+        msgBox.setStandardButtons(QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.Ok)
+        msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
+        response = msgBox.exec()
+        if response == QtWidgets.QMessageBox.Ok:
+            return True
+        return False
+
+    def closeEvent(self, event):
+        if self.check_save():
+            event.accept()
+        else:
+            event.ignore()
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

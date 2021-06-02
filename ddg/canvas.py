@@ -160,6 +160,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         return classes
 
     def add_class(self, category, class_name):
+        self.state_changed = True
         if class_name not in self.classes:
             a = Attributes()
             a["Name"] = class_name
@@ -169,11 +170,13 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.class_visibility[class_name] = True
 
     def add_category(self, name):
+        self.state_changed = True
         if name not in self._categories:
             self.data[name] = []
             self._categories.append(name)
 
     def add_point(self, point):
+        self.state_changed = True
 
         if self.edit_style != EditStyle.POINTS:
             return
@@ -206,16 +209,19 @@ class Canvas(QtWidgets.QGraphicsScene):
         return self._categories
 
     def clear_grid(self):
+        self.state_changed = True
         for graphic in self.items():
             if type(graphic) == QtWidgets.QGraphicsLineItem:
                 self.removeItem(graphic)
 
     def clear_points(self):
+        self.state_changed = True
         for graphic in self.items():
             if type(graphic) == QtWidgets.QGraphicsEllipseItem:
                 self.removeItem(graphic)
             
     def clear_measures(self):
+        self.state_changed = True
         for graphic in self.items():
             if type(graphic) == QtWidgets.QGraphicsPathItem:
                 self.removeItem(graphic)
@@ -232,6 +238,7 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.display_points()
 
     def delete_selected_points(self):
+        self.state_changed = True
         if self.current_image_name is not None:
             if self.edit_style == EditStyle.POINTS:
                 points = self.points[self.current_image_name]
@@ -372,6 +379,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         peek = drop_list[0]
         if not isinstance(peek, str):
             peek = peek.toLocalFile()
+        self.state_changed = True
         if os.path.isdir(peek):
             if self.directory == '':
                 # strip off trailing sep from path
@@ -433,6 +441,7 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.load_images(drop_list)
 
     def load_image(self, in_file_name):
+        self.state_changed = True
         Image.MAX_IMAGE_PIXELS = 1000000000
         file_name = in_file_name
         if type(file_name) == QtCore.QUrl:
@@ -509,6 +518,7 @@ class Canvas(QtWidgets.QGraphicsScene):
             QtWidgets.QApplication.restoreOverrideCursor()
 
     def load_images(self, images):
+        self.state_changed = True
         for file in images:
             file_name = file
             if type(file) == QtCore.QUrl:
@@ -579,8 +589,10 @@ class Canvas(QtWidgets.QGraphicsScene):
             path = os.path.join(path, list(self.points.keys())[0])
             self.load_image(path)
         recentlyUsed.add_file(file_name)
+        self.state_changed = False
 
     def measure_area(self, rect):
+        self.state_changed = True
         if self.current_image_name is None or self.edit_style != EditStyle.RECTS:
             return
 
@@ -620,6 +632,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         self.measure_rects_data[self.current_image_name].append({"x":topLeft.x(), "y":topLeft.y(), "width":width, "height":height})
 
     def package_points(self, survey_id):
+        self.state_changed = False
         count = 0
         image_scale = {}
         for k, scale in self.image_scale.items():
@@ -663,6 +676,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         return (package, count)
 
     def relabel_selected_points(self):
+        self.state_changed = True
         if self.current_class_name is not None:
             # for class_name, point in self.selection:
             for _, point in self.selection:
@@ -671,6 +685,7 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.points_updated.emit()
 
     def rename_category(self, old_category, new_category):
+        self.state_changed = True
         if new_category in self.categories:
             raise ValueError("New name already exists {}".format(new_category))
         self.data[new_category] = self.data.pop(old_category)
@@ -680,6 +695,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         self.current_category_name = new_category
 
     def rename_ecu(self, new_name, ecu_name, pcb_name, pos):
+        self.state_changed = True
         if ecu_name and pcb_name and pos: # switch top / bottom
             image = self.ecus[ecu_name][pcb_name][pos]
             if new_name in self.ecus[ecu_name][pcb_name].keys():
@@ -712,6 +728,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         return 1
         
     def move_class(self, classname, old_category, new_category, index=None):
+        self.state_changed = True
         if new_category not in self.categories or old_category not in self.categories:
             raise ValueError("Category not found {}".format(new_category))
         if classname not in self.classes:
@@ -728,6 +745,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         self.display_points()
 
     def rename_class(self, old_class, new_class):
+        self.state_changed = True
         if new_class in self.classes:
             raise ValueError("New name already exists {}".format(new_class))
 
@@ -765,6 +783,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         return names
 
     def remove_from_ecus(self, nodes):
+        self.state_changed = True
         n = len(nodes)
         if not n:
             return
@@ -773,14 +792,17 @@ class Canvas(QtWidgets.QGraphicsScene):
             del self.ecus[nodes[0]]
             for image in images:
                 del self.points[image]
+                del self.pcb_info[image]
         elif n == 2:
             images = list(self.ecus[nodes[0]][nodes[1]].values())
             for image in images:
                 del self.points[image]
+                del self.pcb_info[image]
             del self.ecus[nodes[0]][nodes[1]]
         else:
             image = self.ecus[nodes[0]][nodes[1]][nodes[2]]
             del self.points[image]
+            del self.pcb_info[image]
             del self.ecus[nodes[0]][nodes[1]][nodes[2]]
         if self.current_image_name not in self.points:
             self.current_image_name = None
@@ -788,6 +810,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         self.display_points()
         
     def remove_class(self, name):
+        self.state_changed = True
         category = self.get_category_from_class(name)
         for image in self.points:
             if name in self.points[image]:
@@ -801,6 +824,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         self.display_points()
 
     def remove_category(self, name):
+        self.state_changed = True
         classes = self.data[name]
         for image in self.points:
             for class_name in classes:
@@ -853,8 +877,10 @@ class Canvas(QtWidgets.QGraphicsScene):
         self.measure_rects = defaultdict(list) # here we sore the QGraphicsPathItems
         self.measure_rects_data = defaultdict(list) # here we store the x, y, w, h of the measured rects. PathItems are destroyed when updating the view therefore we need to store that info seperately
         self.timer = None
+        self.state_changed = False
 
     def save_pcb_info(self, x, y, ecu, position):
+        self.state_changed = True
         if self.current_image_name is not None:
             self.pcb_info[self.current_image_name].update({"x":x, "y":y})
 
@@ -916,22 +942,27 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.display_measures()
 
     def set_grid_color(self, color):
+        self.state_changed = True
         self.ui['grid']['color'] = [color.red(), color.green(), color.blue()]
         self.display_grid()
 
     def set_grid_size(self, size):
+        self.state_changed = True
         self.ui['grid']['size'] = size
         self.display_grid()
 
     def set_point_color(self, color):
+        self.state_changed = True
         self.ui['point']['color'] = [color.red(), color.green(), color.blue()]
         self.display_points()
 
     def set_point_radius(self, radius):
+        self.state_changed = True
         self.ui['point']['radius'] = radius
         self.display_points()
 
     def set_scale(self, mm, rect):
+        self.state_changed = True
         if self.current_image_name is None:
             return
         scale = int(mm)/int(rect.width())
@@ -960,10 +991,12 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.clear_points()
             
     def set_component_attribute(self, attribute, value):
+        self.state_changed = True
         if self.current_class_name is not None:
             self.class_attributes[self.current_class_name][attribute] = value
 
     def set_ecu_info(self, ecu_name, pcb_name, position, image):
+        self.state_changed = True
         if not ecu_name in self.ecus:
             self.ecus[ecu_name] = {}
         if not pcb_name in self.ecus[ecu_name]:
