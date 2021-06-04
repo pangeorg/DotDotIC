@@ -32,6 +32,20 @@ from ddg.canvas import Scale, completion
 from ddg import PointWidget
 from .ui.central_widget_ui import Ui_CentralWidget as CLASS_DIALOG
 
+def getText(widget):
+    if isinstance(widget, (LineEdit, QtWidgets.QLineEdit)):
+        return widget.text()
+    elif isinstance(widget, QtWidgets.QComboBox):
+        return widget.currentText()
+    return None
+
+def setText(widget, text):
+    if isinstance(widget, (LineEdit, QtWidgets.QLineEdit)):
+        return widget.setText(text)
+    elif isinstance(widget, QtWidgets.QComboBox):
+        return widget.setCurrentText(text)
+    return None
+
 class LineEdit(QtWidgets.QLineEdit):
     copy_all_signal = QtCore.pyqtSignal()
     paste_all_signal = QtCore.pyqtSignal()
@@ -44,6 +58,7 @@ class LineEdit(QtWidgets.QLineEdit):
         self.customContextMenuRequested.connect(self.createMenu)
 
     def createMenu(self, position):
+
         self.menu = QtWidgets.QMenu()
         copy_one = self.menu.addAction("Copy (CTRL+C)")
         paste_one = self.menu.addAction("Paste (CTRL+V)")
@@ -61,6 +76,12 @@ class LineEdit(QtWidgets.QLineEdit):
         if "Convert To Uppercase" not in self.available_actions:
             convert_to_uppercase.setEnabled(False)
             convert_to_lowercase.setEnabled(False)
+
+        self.menu.addSeparator()
+        search_actions = []
+        for name in ["Google", "Digi-Key", "Findchips"]:
+            search_actions.append(self.menu.addAction("Search {}".format(name)))
+
         action = self.menu.exec_(self.mapToGlobal(position))
         if action is None:
             return
@@ -78,6 +99,23 @@ class LineEdit(QtWidgets.QLineEdit):
             self.convert_to_uppercase()
         elif action == convert_to_lowercase:
             self.convert_to_lowercase()
+        elif action in search_actions:
+            self.websearch(action.text())
+
+    def websearch(self, where):
+        if self.hasSelectedText():
+            text = self.selectedText()
+        else:
+            text = self.text()
+        addr = r"https:\\www."
+        if "Google" in where:
+            addr = addr + "google.com/search?q=" + text.replace(" ", "+")
+        elif "Digi-Key" in where:
+            addr = addr + "digikey.com/product-search/en?keywords=" + text
+        elif "Findchips" in where:
+            addr = addr + "findchips.com/search/" + text
+        import webbrowser as wb
+        wb.get("windows-default").open(addr)
 
     def keyPressEvent(self, a0: QtGui.QKeyEvent) -> None:
         key = a0.key()
@@ -142,6 +180,7 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
     load_custom_data = QtCore.pyqtSignal(dict)
 
     def __init__(self, parent=None):
+        from functools import partial
         _translate = QtCore.QCoreApplication.translate
         QtWidgets.QDialog.__init__(self)
         self.setupUi(self)
@@ -184,8 +223,8 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         self.dataLineEditsNames = ["lineEdit_ecu", "lineEdit_pcb", "comboBox_pos", "lineEditX", "lineEditY"]
         pcbAttr = ["ECU Name", "PCB Name", "Side", "Length", "Width"]
 
-        self.attributeLineEditsNames = ["lineEdit_description", "lineEdit_marking", 
-                     "lineEdit_partnumber", "lineEdit_manufacturer", "lineEdit_package", 
+        self.attribute_widget_names = ["lineEdit_description", "lineEdit_marking", 
+                     "lineEdit_partnumber", "comboBox_manufacturer", "comboBox_package", 
                      "lineEdit_length", "lineEdit_width", "lineEdit_height", "lineEdit_pincount"]
 
         self.attribute_names = ["Description", "Marking", "Partnumber", "Manufacturer", "Package", "Length",
@@ -223,20 +262,34 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
             layout.addWidget(label, i, 0, 1, 1)
             setattr(self, k, widget)
 
-        self.lineEdit_attributes = {}
-        for i, k in enumerate(self.attributeLineEditsNames):
+        self.attribute_widgets = {}
+        for i, k in enumerate(self.attribute_widget_names):
             box = self.groupBoxCustomFields
             layout = self.gridLayout
-            lineEdit = LineEdit(box)
-            lineEdit.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-            lineEdit.setAcceptDrops(False)
-            lineEdit.setObjectName(k)
-            lineEdit.textEdited.connect(self.update_attributes)
-            lineEdit.returnPressed.connect(self.cycle_edits)
-            lineEdit.setDisabled(True)
-            lineEdit.copy_all_signal.connect(self.copy_all_attributes)
-            lineEdit.paste_all_signal.connect(self.paste_all_attributes)
-            layout.addWidget(lineEdit, i, 1, 1, 1)
+            if "line" in k:
+                widget = LineEdit(box)
+                widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+                widget.setAcceptDrops(False)
+                widget.setObjectName(k)
+                widget.setDisabled(True)
+                widget.textEdited.connect(partial(self.update_attributes, name=k))
+                widget.returnPressed.connect(self.cycle_edits)
+                widget.copy_all_signal.connect(self.copy_all_attributes)
+                widget.paste_all_signal.connect(self.paste_all_attributes)
+            else:
+                widget = QtWidgets.QComboBox(box)
+                widget.setDisabled(True)
+                widget.setObjectName(k)
+                widget.setLineEdit(LineEdit())
+                widget.currentTextChanged.connect(partial(self.update_attributes, name=k))
+                widget.currentIndexChanged.connect(partial(self.update_attributes, name=k))
+                widget.lineEdit().textEdited.connect(partial(self.update_attributes, name=k))
+                widget.lineEdit().returnPressed.connect(self.cycle_edits)
+                widget.lineEdit().copy_all_signal.connect(self.copy_all_attributes)
+                widget.lineEdit().paste_all_signal.connect(self.paste_all_attributes)
+
+            layout.addWidget(widget, i, 1, 1, 1)
+            widget.setFrame(False)
 
             label = QtWidgets.QLabel(box)
             sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
@@ -247,22 +300,26 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
             label.setText(_translate("CentralWidget", self.attribute_names[i]))
             layout.addWidget(label, i, 0, 1, 1)
 
-            self.lineEdit_attributes[self.attribute_names[i]] = lineEdit
-            setattr(self, k, lineEdit)
-            setattr(self, k.replace("lineEdit", "label"), label)
+            self.attribute_widgets[self.attribute_names[i]] = widget
+            setattr(self, k, widget)
+            setattr(self, k.replace("lineEdit", "label").replace("comboBox", "label"), label)
 
-        self.lineEdits = self.dataLineEditsNames.copy()
-        self.lineEdits.extend(self.attributeLineEditsNames)
+        self.info_widgets = self.dataLineEditsNames.copy()
+        self.info_widgets.extend(self.attribute_widget_names)
         self.set_tool_tips()
 
         package_completer = QtWidgets.QCompleter(completion.packages)
         package_completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self.lineEdit_package.setCompleter(package_completer)
+        self.comboBox_package.lineEdit().setCompleter(package_completer)
+        self.comboBox_package.addItems(completion.packages)
+        self.comboBox_package.setCurrentText("")
         package_completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
 
         manufacturer_completer = QtWidgets.QCompleter(completion.manufacturers)
         manufacturer_completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        self.lineEdit_manufacturer.setCompleter(manufacturer_completer)
+        self.comboBox_manufacturer.lineEdit().setCompleter(manufacturer_completer)
+        self.comboBox_manufacturer.addItems(completion.manufacturers)
+        self.comboBox_manufacturer.setCurrentText("")
         manufacturer_completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
 
         # self.pushButtonFolder.clicked.connect(self.select_folder)
@@ -295,8 +352,8 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         from os import linesep
         clipboard = QtWidgets.QApplication.clipboard()
         text = ""
-        for attr_name, lineEdit in self.lineEdit_attributes.items():
-            text = text + lineEdit.text() + linesep
+        for _, widget in self.widget_attributes.items():
+            text = text + setText(widget) + linesep
         clipboard.setText(text.strip(linesep))
 
     def paste_all_attributes(self):
@@ -309,20 +366,20 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
             text = text.split("\n")
         if text[-1] == "\n" or text[-1] == linesep:
             text = text[:-1]
-        attributes = list(self.lineEdit_attributes.keys())
+        attributes = list(self.attribute_widgets.keys())
         for i, t in enumerate(text):
             if i == len(attributes):
                 break
-            self.lineEdit_attributes[attributes[i]].setText(text[i])
+            setText(self.attribute_widgets[attributes[i]], text[i])
 
     def cycle_edits(self):
-        cycled = cycle(self.lineEdits)
+        cycled = cycle(self.info_widgets)
         for k in cycled:
-            lineEdit = getattr(self, k)
-            if lineEdit.hasFocus():
-                lineEdit.clearFocus()
-                nextLineEdit = getattr(self, next(cycled))
-                nextLineEdit.setFocus()
+            w = getattr(self, k)
+            if w.hasFocus():
+                w.clearFocus()
+                nextW = getattr(self, next(cycled))
+                nextW.setFocus()
                 break
 
     def display_pointer_coordinates(self, point):
@@ -351,22 +408,14 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
 
     def display_attributes(self):
         if self.canvas.current_class_name is None or self.canvas.current_image_name is None:
-            for _, lineEdit in self.lineEdit_attributes.items():
-                lineEdit.setText("")
-                lineEdit.setDisabled(True)
+            for _, w in self.attribute_widgets.items():
+                setText(w, "")
+                w.setDisabled(True)
         else:
-            for k, lineEdit in self.lineEdit_attributes.items():
-                lineEdit.setDisabled(False)
+            for k, widget in self.attribute_widgets.items():
+                widget.setDisabled(False)
                 value = self.canvas.class_attributes[self.canvas.current_class_name][k]
-                if k == "Packages":
-                    if value not in completion.packages:
-                        completion.update(packages=[value])
-                        self.lineEdit_package.setCompleter(QtWidgets.QCompleter(completion.packages))
-                elif k == "Manufacturer":
-                    if value not in completion.manufacturers:
-                        completion.update(manufacturers=[value])
-                        self.lineEdit_manufacturer.setCompleter(QtWidgets.QCompleter(completion.manufacturers))
-                lineEdit.setText(value)
+                setText(widget, value)
                 
     def display_working_directory(self, directory):
         self.labelWorkingDirectory.setText(directory)
@@ -415,7 +464,7 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         self.lineEdit_pcb.setToolTip("Name of active PCB. To change name hit 'Enter'")
         self.lineEditX.setToolTip("Width of active PCB. Saved when edited")
         self.lineEditY.setToolTip("Width of active PCB. Saved when edited")
-        for attr, edit in zip(self.attribute_names, self.attributeLineEditsNames):
+        for attr, edit in zip(self.attribute_names, self.attribute_widget_names):
             widget = getattr(self, edit)
             widget.setToolTip("{:} of active component. Saved when text changed.".format(attr))
 
@@ -456,7 +505,13 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
             else:
                 self.point_widget.display_count_tree()
         
-    def update_attributes(self, text):
-        for k, lineEdit in self.lineEdit_attributes.items():
-            value = lineEdit.text()
-            self.canvas.set_component_attribute(k, value)
+    def update_attributes(self, text, name):
+        if "combo" in name.lower():
+            text = getattr(self, name).currentText()
+        i = self.attribute_widget_names.index(name)
+        attr = self.attribute_names[i]
+        self.canvas.set_component_attribute(attr, text)
+
+        # for k, widget in self.attribute_widgets.items():
+        #     value = getText(widget)
+        #     self.canvas.set_component_attribute(k, value)

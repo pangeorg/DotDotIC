@@ -167,6 +167,8 @@ class MainWindow(QMainWindow):
                         <h2> General </h2>                            
                         <p> There are two modes for counting or measuring which can be selected in the toolbar. </p>
                         <p> STRG + +             - Add component to current category    </p>
+                        <p> G                    - Toggle Grid                          </p>
+                        <p> D                    - Toggle Display                       </p>
                         <h2> Count Mode </h2>
                         <p> STRG + Right Click   - Add Count    </p>
                         <p> SHIFT + Drag         - Select Items </p>
