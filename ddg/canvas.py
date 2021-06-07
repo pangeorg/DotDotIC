@@ -59,7 +59,8 @@ class Scale:
         return scale
 
 class Attributes(dict):
-    DEFAULT_KEYS = ["Name", "Partnumber", "Description", "Short Description", "Manufacturer", "Marking", "Datasheet", "Length", "Width", "Height", "Weight", "Package", "IO/Pin Count"]
+    DEFAULT_KEYS = ["Name", "Partnumber", "Description", "Short Description", 
+                    "Manufacturer", "Marking", "Datasheet", "Diameter", "Length", "Width", "Height", "Weight", "Package", "IO/Pin Count", "Metrik"]
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
         for k in Attributes.DEFAULT_KEYS:
@@ -351,7 +352,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         with open(file_name, "w", newline="") as f:
             writer = csv.writer(f, delimiter=";")
             header = ["ECU", "PCB", "Category", "Component", "Top", "Bottom", "Total", "Description", "Manufacturer", "Partnumber", 
-                    "Marking", "Package", "Length", "Width", "Height", "IO/Pin Count"]
+                    "Marking", "Package", "Length", "Width", "Height", "Diameter", "IO/Pin Count", "Metrik"]
             writer.writerow(header)
             for ecu_name, pcbs in self.ecus.items():
                 for pcb_name, positions in pcbs.items():
@@ -365,7 +366,7 @@ class Canvas(QtWidgets.QGraphicsScene):
                             attr = self.class_attributes[class_name]
                             row = [ecu_name, pcb_name, category, class_name, count_top, count_bot, count_tot, attr["Description"], attr['Manufacturer'], 
                                 attr["Partnumber"], attr["Marking"], attr["Package"], attr["Length"], attr["Width"], 
-                                attr["Height"], attr["IO/Pin Count"]]
+                                attr["Height"], attr["Diameter"], attr["IO/Pin Count"], attr["Metrik"]]
                             writer.writerow(row)
 
     def get_category_from_class(self, class_name):
@@ -849,7 +850,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         self.colors = {}
         self.pcb_info = defaultdict(lambda:{"x":"", "y":""})
 
-        self._categories = self.config.categories.copy() 
+        self._categories = sorted(self.config.categories.copy())
         self.class_attributes = {}
         self.data = {}
         for c in self._categories:

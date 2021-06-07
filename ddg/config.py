@@ -121,6 +121,10 @@ class AutoCompleteFile:
                             "Rohm", "Rubycon", "Shindengen", "Shizuki", "Silicon Labs", "STMicroelectronics", "Sumida", "Sumitomo", "Susumu", "Taiwan Semiconductor", 
                             "Taiyo Yuden", "TDK", "TE Connectivity", "Texas Instruments", "United Chemi-Con", "Vishay", "Würth Electronics", "Xilinx"]
 
+    DEFAULT_METRIKS = ["Commodity", "IC", "Passive", "Power", "Mechanical", "Opto", "Display", 
+                        "Standard_IC", "Crystal", "Standard_analog", "uC", "Specialty", "Memory", 
+                        "EM", "PCB", "Portfolio", "Calculation", ]
+
 
     def __init__(self, filename=None):
         if not os.path.exists(AutoCompleteFile.DEFAULTFILE):
@@ -136,30 +140,47 @@ class AutoCompleteFile:
     def load(self, filename):
         config = configparser.ConfigParser()
         config.read(filename)
-        self.packages = list(set([c.strip() for _, c in config["Packages"].items()]))
-        self.manufacturers = list(set([c.strip() for _, c in config["Manufacturers"].items()]))
+        try:
+            self.packages = list(set([c.strip() for _, c in config["Packages"].items()]))
+        except:
+            self.packages = AutoCompleteFile.DEFAULT_PACKAGES.copy()
+        try:
+            self.manufacturers = list(set([c.strip() for _, c in config["Manufacturers"].items()]))
+        except:
+            self.manufacturers = AutoCompleteFile.DEFAULT_MANUFACTURERS.copy()
+        try:
+            self.metriks = list(set([c.strip() for _, c in config["Metriks"].items()]))
+        except:
+            self.metriks = AutoCompleteFile.DEFAULT_METRIKS.copy()
         self.packages.sort()
         self.manufacturers.sort()
+        self.metriks.sort()
 
-    def update(self, filename=None, packages=[], manufacturers=[]):
+    def update(self, filename=None, packages=[], manufacturers=[], metriks=[]):
         if filename is not None:
             config = configparser.ConfigParser()
             config.read(filename)
             _packages = [c.strip() for _, c in config["Packages"].items()]
             _manufacturers = [c.strip() for _, c in config["Manufacturers"].items()]
+            _metriks = [c.strip() for _, c in config["Metriks"].items()]
             if len(packages) > 0: _packages.extend(packages)
             if len(manufacturers) > 0: _manufacturers.extend(manufacturers)
+            if len(metriks) > 0: _manufacturers.extend(metriks)
             self.packages = list(set(_packages))
             self.manufacturers = list(set(_manufacturers))
+            self.metriks = list(set(_metriks))
             self.write(filename)
         else:
             self.packages.extend(packages)
             self.manufacturers.extend(manufacturers)
+            self.metriks.extend(metriks)
             self.packages = list(set(self.packages))
             self.manufacturers = list(set(self.manufacturers))
+            self.metriks = list(set(self.metriks))
         
         self.packages.sort()
         self.manufacturers.sort()
+        self.metriks.sort()
 
     def write(self, filename):
         self.packages.sort()
@@ -167,6 +188,7 @@ class AutoCompleteFile:
         config = configparser.ConfigParser()
         config["Packages"] = {"Package{:03d}".format(i):c for i,c in enumerate(self.packages)}
         config["Manufacturers"] = {"Manufacturer{:03d}".format(i):c for i,c in enumerate(self.manufacturers)}
+        config["Metriks"] = {"Metrik{:03d}".format(i):c for i,c in enumerate(self.metriks)}
         with open(filename, "w") as f:
             config.write(f)
 
@@ -175,6 +197,7 @@ class AutoCompleteFile:
         config = configparser.ConfigParser()
         config["Packages"] = {"Package{:03d}".format(i):c for i,c in enumerate(AutoCompleteFile.DEFAULT_PACKAGES)}
         config["Manufacturers"] = {"Manufacturer{:03d}".format(i):c for i,c in enumerate(AutoCompleteFile.DEFAULT_MANUFACTURERS)}
+        config["Metriks"] = {"Metriks{:03d}".format(i):c for i,c in enumerate(AutoCompleteFile.DEFAULT_METRIKS)}
         with open(AutoCompleteFile.DEFAULTFILE, "w") as f:
             config.write(f)
 

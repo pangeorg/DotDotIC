@@ -236,8 +236,8 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
             self.tree_expanded[item.data(0)] = self.classTree.isExpanded(self.classModel.index(i,0))
         self.reset_class_model()
         root = self.classModel.invisibleRootItem()
-        for category in self.canvas._categories:
-            classes = self.canvas.data[category]
+        for category in sorted(self.canvas._categories):
+            classes = sorted(self.canvas.data[category])
             total_count = 0
             category_item, category_count_item, _ = self._get_default_category(category)
             if len(classes) != 0:
