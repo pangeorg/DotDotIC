@@ -481,15 +481,16 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
         self.treeView.setColumnWidth(0, 270)
         self.treeView.setColumnWidth(1, 10)
 
-    def remove_class(self):
-        indexes = self.classTree.selectedIndexes()
+    def remove_class(self, indexes=None):
+        if indexes is None:
+            indexes = self.classTree.selectedIndexes()
         if len(indexes) > 0:
             index = indexes[0]
             item = index.model().itemFromIndex(index)
             name = item.data(0)
             msgBox = QtWidgets.QMessageBox()
             msgBox.setWindowTitle('Warning')
-            msgBox.setText('You are about to remove class/category [{}] '.format(name))
+            msgBox.setText('You are about to remove [{}] '.format(name))
             msgBox.setInformativeText('Do you want to continue?')
             msgBox.setStandardButtons(QtWidgets.QMessageBox.Cancel | QtWidgets.QMessageBox.Ok)
             msgBox.setDefaultButton(QtWidgets.QMessageBox.Cancel)
@@ -654,6 +655,8 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
         menu = QMenu()
         action_rename = menu.addAction("Rename")
         action_rename.triggered.connect(lambda: self.inputDialog.setNames(index))
+        action_delete = menu.addAction("Delete")
+        action_delete.triggered.connect(lambda: self.remove_class(indexes=[index]))
         menu.exec_(self.sender().viewport().mapToGlobal(position))
 
     def openEcuContextMenu(self, position):

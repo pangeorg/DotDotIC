@@ -137,6 +137,7 @@ class ECUInputDialog(QDialog, ECU_DIALOG):
 class Canvas(QtWidgets.QGraphicsScene):
     image_loaded = QtCore.pyqtSignal(str, str)
     points_loaded = QtCore.pyqtSignal(str, str)
+    points_saved = QtCore.pyqtSignal(str, str)
     directory_set = QtCore.pyqtSignal(str)
     fields_updated = QtCore.pyqtSignal()
     points_updated = QtCore.pyqtSignal()
@@ -891,6 +892,8 @@ class Canvas(QtWidgets.QGraphicsScene):
             json.dump(output, file)
             file.close()
             completion.write(AutoCompleteFile.DEFAULTFILE)
+            self.points_saved.emit(survey_id, file_name)
+            self.state_changed = False
         except OSError:
             return False
         return True

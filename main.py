@@ -47,7 +47,9 @@ class MainWindow(QMainWindow):
         self._createMenuBar()
 
         self._centralWidget.canvas.points_loaded.connect(self.update_title)
+        self._centralWidget.canvas.points_saved.connect(self.update_title)
         self._centralWidget.pushButtonFolder.clicked.connect(self.select_folder)
+        self._centralWidget.canvas.state_changed = False
     
     def _createMenuBar(self):
         import os
