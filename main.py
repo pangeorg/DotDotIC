@@ -85,6 +85,11 @@ class MainWindow(QMainWindow):
         editMenu.addAction(self.editPointsAction)
         editMenu.addAction(self.editMeasureAction)
 
+        # --- View
+        viewMenu = QMenu("&View", self)
+        menuBar.addMenu(viewMenu)
+        viewMenu.addAction(self.showBomViewAction)
+
         # --- Help menu
         helpMenu = QMenu("&Help", self)
         menuBar.addMenu(helpMenu)
@@ -122,9 +127,27 @@ class MainWindow(QMainWindow):
         self.editMeasureAction.triggered.connect(self.set_edit_rects)
         self._centralWidget.rectsToolButton.setDefaultAction(self.editMeasureAction)
 
+        self.showBomViewAction = QAction("BOM View", self)
+        self.showBomViewAction.triggered.connect(self.showBomView)
+
+    def showBomView(self):
+        from ddg.table_view import TableView
+
+        data = {'col1':['1','2','3','4'],
+                'col2':['1','2','1','3'],
+                'col3':['1','1','2','1']}
+
+        data = self._centralWidget.canvas.prepare_export_counts()
+        tw = TableView(data)
+        tw.exec_()
+
     def load_points(self, filename):
         if self.check_save():
-            self._centralWidget.canvas.load_points(filename)
+            if os.path.exists(filename):
+                self._centralWidget.canvas.load_points(filename)
+            else:
+                message = filename + " not found"
+                QtWidgets.QMessageBox.warning(self.parent(), 'Warning', message, QtWidgets.QMessageBox.Ok)
 
     def select_folder(self):
         if self.check_save():

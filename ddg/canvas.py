@@ -58,6 +58,10 @@ class Scale:
             setattr(scale, field.name, dictionary.get(field.name, field.default))
         return scale
 
+def attributes_from_dict(attrs):
+    return {k:Attributes.from_dict(v) for k, v in attrs.items()}
+
+
 class Attributes(dict):
     DEFAULT_KEYS = ["Name", "Partnumber", "Description", "Short Description", 
                     "Manufacturer", "Marking", "Datasheet", "Diameter", "Length", "Width", "Height", "Weight", "Package", "IO/Pin Count", "Metrik"]
@@ -70,6 +74,11 @@ class Attributes(dict):
         if not k in Attributes.DEFAULT_KEYS:
             if self.has_key(k):
                 dict.__delitem__(self, k)
+    @staticmethod
+    def from_dict(d):
+        a = Attributes()
+        a.update(d)
+        return a
 
 class ECUInputDialog(QDialog, ECU_DIALOG):
     def __init__(self, canvas):
@@ -347,27 +356,35 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.measure_rects[self.current_image_name].append(path)
             self.measure_rects_data[self.current_image_name].append(mrect)
 
+    def prepare_export_counts(self):
+        rows = []
+        header = ["ECU", "PCB", "Category", "Component", "Top", "Bottom", "Total", "Description", "Manufacturer", "Partnumber", 
+                "Marking", "Package", "Length", "Width", "Height", "Diameter", "IO/Pin Count", "Metrik"]
+        rows.append(header)
+        for ecu_name, pcbs in self.ecus.items():
+            for pcb_name, positions in pcbs.items():
+                top = positions.get("Top", "")
+                bottom = positions.get("Bottom", "")
+                for category in self.categories:
+                    for class_name in self.data[category]:
+                        count_top = len(self.points.get(top, {}).get(class_name, []))
+                        count_bot = len(self.points.get(bottom, {}).get(class_name, []))
+                        count_tot = count_bot + count_top
+                        attr = self.class_attributes[class_name]
+                        row = [ecu_name, pcb_name, category, class_name, count_top, count_bot, count_tot, attr["Description"], attr['Manufacturer'], 
+                            attr["Partnumber"], attr["Marking"], attr["Package"], attr["Length"], attr["Width"], 
+                            attr["Height"], attr["Diameter"], attr["IO/Pin Count"], attr["Metrik"]]
+                        rows.append(row)
+        return rows
+
     def export_counts(self, file_name, survey_id):
         import csv
+        rows = self.prepare_export_counts()
         with open(file_name, "w", newline="") as f:
             writer = csv.writer(f, delimiter=";")
-            header = ["ECU", "PCB", "Category", "Component", "Top", "Bottom", "Total", "Description", "Manufacturer", "Partnumber", 
-                    "Marking", "Package", "Length", "Width", "Height", "Diameter", "IO/Pin Count", "Metrik"]
-            writer.writerow(header)
-            for ecu_name, pcbs in self.ecus.items():
-                for pcb_name, positions in pcbs.items():
-                    top = positions.get("Top", "")
-                    bottom = positions.get("Bottom", "")
-                    for category in self.categories:
-                        for class_name in self.data[category]:
-                            count_top = len(self.points.get(top, {}).get(class_name, []))
-                            count_bot = len(self.points.get(bottom, {}).get(class_name, []))
-                            count_tot = count_bot + count_top
-                            attr = self.class_attributes[class_name]
-                            row = [ecu_name, pcb_name, category, class_name, count_top, count_bot, count_tot, attr["Description"], attr['Manufacturer'], 
-                                attr["Partnumber"], attr["Marking"], attr["Package"], attr["Length"], attr["Width"], 
-                                attr["Height"], attr["Diameter"], attr["IO/Pin Count"], attr["Metrik"]]
-                            writer.writerow(row)
+            writer.writerow(rows[0])
+            for row in rows[1:]:
+                writer.writerow(row)
 
     def get_category_from_class(self, class_name):
         category = None
@@ -408,9 +425,14 @@ class Canvas(QtWidgets.QGraphicsScene):
                     self.reset()
                     self.load(drop_list)
         elif ".pnt" in peek:
-            self.reset()
-            self.load_points(peek)
-            recentlyUsed.add_file(peek)
+            if os.path.exists(peek):
+                self.reset()
+                self.load_points(peek)
+                recentlyUsed.add_file(peek)
+            else:
+                message = peek + " not found"
+                QtWidgets.QMessageBox.warning(self.parent(), 'Warning', message, QtWidgets.QMessageBox.Ok)
+                return
         else:
             base_path = os.path.split(peek)[0]
             for entry in drop_list:
@@ -541,7 +563,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         file.close()
         survey_id = data['metadata']['survey_id']
 
-        self.class_attributes = data["attributes"]
+        self.class_attributes = attributes_from_dict(data["attributes"])
         for class_name, attributes in self.class_attributes.items():
             if attributes["Package"] not in completion.packages:
                 completion.update(packages=[attributes["Package"]])
