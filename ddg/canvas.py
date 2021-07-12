@@ -358,8 +358,8 @@ class Canvas(QtWidgets.QGraphicsScene):
 
     def prepare_export_counts(self):
         rows = []
-        header = ["ECU", "PCB", "Category", "Component", "Top", "Bottom", "Total", "Description", "Manufacturer", "Partnumber", 
-                "Marking", "Package", "Length", "Width", "Height", "Diameter", "IO/Pin Count", "Metrik"]
+        header = ["ECU", "PCB", "Category", "Component", "Top", "Bottom", "Description", "Manufacturer", "Partnumber", 
+                "Marking", "Relevant Marking", "Package", "Placement", "Unit", "IO/Pin Count", "Diameter", "Length", "Width", "Height", "Metrik"]
         rows.append(header)
         for ecu_name, pcbs in self.ecus.items():
             for pcb_name, positions in pcbs.items():
@@ -369,11 +369,11 @@ class Canvas(QtWidgets.QGraphicsScene):
                     for class_name in self.data[category]:
                         count_top = len(self.points.get(top, {}).get(class_name, []))
                         count_bot = len(self.points.get(bottom, {}).get(class_name, []))
-                        count_tot = count_bot + count_top
+                        # count_tot = count_bot + count_top
                         attr = self.class_attributes[class_name]
-                        row = [ecu_name, pcb_name, category, class_name, count_top, count_bot, count_tot, attr["Description"], attr['Manufacturer'], 
-                            attr["Partnumber"], attr["Marking"], attr["Package"], attr["Length"], attr["Width"], 
-                            attr["Height"], attr["Diameter"], attr["IO/Pin Count"], attr["Metrik"]]
+                        row = [ecu_name, pcb_name, category, class_name, count_top, count_bot, attr["Description"], attr['Manufacturer'], 
+                            attr["Partnumber"], attr["Marking"], "", attr["Package"], "", "", attr["IO/Pin Count"], attr["Diameter"], 
+                            attr["Length"], attr["Width"], attr["Height"], attr["Metrik"]]
                         rows.append(row)
         return rows
 
@@ -903,7 +903,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         self.timer = None
         self.state_changed = False
 
-    def save_pcb_info(self, x, y, ecu, position):
+    def save_pcb_info(self, x, y):
         self.state_changed = True
         if self.current_image_name is not None:
             self.pcb_info[self.current_image_name].update({"x":x, "y":y})
@@ -974,7 +974,7 @@ class Canvas(QtWidgets.QGraphicsScene):
 
     def set_grid_size(self, size):
         self.state_changed = True
-        self.ui['grid']['size'] = size
+        self.ui['grid']['size'] = max(size, 10)
         self.display_grid()
 
     def set_point_color(self, color):

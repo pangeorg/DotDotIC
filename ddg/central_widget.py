@@ -360,8 +360,8 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         from os import linesep
         clipboard = QtWidgets.QApplication.clipboard()
         text = ""
-        for _, widget in self.widget_attributes.items():
-            text = text + setText(widget) + linesep
+        for _, widget in self.attribute_widgets.items():
+            text = text + getText(widget) + linesep
         clipboard.setText(text.strip(linesep))
 
     def paste_all_attributes(self):
