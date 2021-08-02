@@ -11,3 +11,4 @@ __pycache__/
 setup.cfg
 logs/
 .vs/
+tests/pictures/Thumbs.db
