@@ -7,7 +7,7 @@ class TableView(QDialog):
         self.table = QTableWidget(parent=self)
         self.nrows = len(data)
         self.ncols = len(data[0])
-        print(self.nrows, self.ncols)
+        # print(self.nrows, self.ncols)
         self.table.setRowCount(self.nrows)
         self.table.setColumnCount(self.ncols)
         self.verticalLayout.addWidget(self.table)
@@ -26,6 +26,6 @@ class TableView(QDialog):
     def setData(self): 
         for ir in range(1, self.nrows):
             for ic in range(self.ncols):
-                newitem = QTableWidgetItem(self.data[ir][ic])
+                newitem = QTableWidgetItem(str(self.data[ir][ic]))
                 self.table.setItem(ir - 1, ic, newitem)
         self.table.setHorizontalHeaderLabels(self.data[0])

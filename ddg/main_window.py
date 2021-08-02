@@ -109,11 +109,6 @@ class MainWindow(QMainWindow):
 
     def showBomView(self):
         from ddg.table_view import TableView
-
-        data = {'col1':['1','2','3','4'],
-                'col2':['1','2','1','3'],
-                'col3':['1','1','2','1']}
-
         data = self._centralWidget.canvas.prepare_export_counts()
         tw = TableView(data)
         tw.exec_()
