@@ -326,7 +326,10 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
         elif name in self.canvas.classes:
             category_name = self.canvas.get_category_from_class(name)
             category_item = self.classModel.findItems(category_name)[0]
-            index = self.canvas.data[category_name].index(name)
+            for i in range(category_item.rowCount()):
+                if name == category_item.child(i, 0).data(0):
+                    index = i
+            # index = self.canvas.data[category_name].index(name)
             return category_item.child(index, 0)
 
     def _get_default_category(self, name):
@@ -386,13 +389,15 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                     class_item = item.child(row, 0)
                     class_item.setCheckState(state)
                     self.canvas.class_visibility[class_item.data(0)] = state > 1
+                self.canvas.set_current_class(name)
             else:
                 category_item = self.classModel.itemFromIndex(index.parent())
                 item = category_item.child(index.row(), 0)
                 name = item.data(0)
                 state = item.checkState()
                 self.canvas.class_visibility[name] = state > 1
-            self.canvas.display_points()
+                self.canvas.set_current_class(name)
+            # self.canvas.display_points()
 
     def image_loaded(self, directory, file_name):
         self.display_classes()
