@@ -12,7 +12,7 @@ SPEC = "DotDotIC.spec"
 ARGS = ["clean", "windowed"]
 EXCLUDES = ["pandas", "scipy", "matplotlib", "xlwings", "beautifulsoup4", "sklearn", "tornado", 
             "hook", "setuptools", "site", "tensorflow", "flask", "cx_freeze", "flake8", "hdf5", 
-            "h5py", "ipython", "ipython", "jupyter", "selenium", "requests", "pyinstaller", "tkinter"]
+            "h5py", "ipython", "ipython", "jupyter", "selenium", "requests", "pyinstaller", "tkinter", 'pyqtdeploy']
 DATAS = ["./ddg/ui/*.ui"]
 
 ONEFILE = True

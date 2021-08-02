@@ -482,7 +482,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
         self.treeView.setColumnWidth(1, 10)
 
     def remove_class(self, indexes=None):
-        if indexes is None:
+        if not indexes:
             indexes = self.classTree.selectedIndexes()
         if len(indexes) > 0:
             index = indexes[0]
