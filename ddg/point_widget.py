@@ -309,6 +309,14 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
     def export_counts(self):
         file_name = QtWidgets.QFileDialog.getSaveFileName(self, 'Export Count Summary', os.path.join(self.canvas.directory, 'counts.csv'), 'Excel Sheet (*.csv)')
         if file_name[0] != '':
+            if not open(file_name[0], "r").closed:
+                msg = QtWidgets.QMessageBox()
+                msg.setIcon(QtWidgets.QMessageBox.Critical)
+                msg.setText("Write - Error")
+                msg.setInformativeText('File open in another program. Please close file and retry')
+                msg.setWindowTitle("Error")
+                msg.exec_()
+                return 
             self.canvas.export_counts(file_name[0], self.lineEditSurveyId.text())
 
     def export_points(self):
