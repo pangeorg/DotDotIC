@@ -373,7 +373,7 @@ class Canvas(QtWidgets.QGraphicsScene):
                         count_bot = len(self.points.get(bottom, {}).get(class_name, []))
                         # count_tot = count_bot + count_top
                         attr = self.class_attributes[class_name]
-                        row = [ecu_name, pcb_name, class_name, attr["Description"], count_top, count_bot, attr['Manufacturer'], 
+                        row = [ecu_name, pcb_name, category, attr["Description"], count_top, count_bot, attr['Manufacturer'], 
                             attr["Partnumber"], attr["Marking"], "", attr["Package"], attr["Placement"], "", attr["IO/Pin Count"], attr["Diameter"], 
                             attr["Length"], attr["Width"], attr["Height"], attr["Metrik"]]
                         rows.append(row)

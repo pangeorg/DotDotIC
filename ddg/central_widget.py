@@ -225,11 +225,11 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
 
         self.attribute_widget_names = ["lineEdit_description", "lineEdit_marking", 
                      "lineEdit_partnumber", "comboBox_manufacturer", "comboBox_package", "comboBox_placement", 
-                     "lineEdit_length", "lineEdit_width", "lineEdit_height", "lineEdit_diameter", 
+                     "lineEdit_diameter", "lineEdit_length", "lineEdit_width", "lineEdit_height", 
                      "lineEdit_pincount", "comboBox_metrik"]
 
-        self.attribute_names = ["Description", "Marking", "Partnumber", "Manufacturer", "Package", "Placement", "Length",
-                      "Width", "Diameter", "Height", "IO/Pin Count", "Metrik"]
+        self.attribute_names = ["Description", "Marking", "Partnumber", "Manufacturer", "Package", "Placement", "Diameter",
+                             "Length", "Width", "Height", "IO/Pin Count", "Metrik"]
 
         for i, k in enumerate(self.dataLineEditsNames):
             box = self.groupBoxImageData
