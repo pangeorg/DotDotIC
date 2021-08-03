@@ -63,8 +63,9 @@ def attributes_from_dict(attrs):
 
 
 class Attributes(dict):
-    DEFAULT_KEYS = ["Name", "Partnumber", "Description", "Short Description", 
-                    "Manufacturer", "Marking", "Datasheet", "Diameter", "Length", "Width", "Height", "Weight", "Package", "IO/Pin Count", "Metrik"]
+    DEFAULT_KEYS = ["Name", "Partnumber", "Description", "Short Description", "Placement",
+                    "Manufacturer", "Marking", "Datasheet", "Diameter", "Length", "Width", 
+                    "Height", "Weight", "Package", "IO/Pin Count", "Metrik"]
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
         for k in Attributes.DEFAULT_KEYS:
@@ -358,8 +359,9 @@ class Canvas(QtWidgets.QGraphicsScene):
 
     def prepare_export_counts(self):
         rows = []
-        header = ["ECU", "PCB", "Category", "Component", "Top", "Bottom", "Description", "Manufacturer", "Partnumber", 
-                "Marking", "Relevant Marking", "Package", "Placement", "Unit", "IO/Pin Count", "Diameter", "Length", "Width", "Height", "Metrik"]
+        header = ["ECU", "PCB", "Short Description", "Component Description", "Top", "Bottom", "Manufacturer", "Partnumber", 
+                "Marking", "Relevant Marking", "Package", "Placement", "Unit", "IO/Pin Count", 
+                "Diameter", "Length", "Width", "Height", "Metrik"]
         rows.append(header)
         for ecu_name, pcbs in self.ecus.items():
             for pcb_name, positions in pcbs.items():
@@ -371,8 +373,8 @@ class Canvas(QtWidgets.QGraphicsScene):
                         count_bot = len(self.points.get(bottom, {}).get(class_name, []))
                         # count_tot = count_bot + count_top
                         attr = self.class_attributes[class_name]
-                        row = [ecu_name, pcb_name, category, class_name, count_top, count_bot, attr["Description"], attr['Manufacturer'], 
-                            attr["Partnumber"], attr["Marking"], "", attr["Package"], "", "", attr["IO/Pin Count"], attr["Diameter"], 
+                        row = [ecu_name, pcb_name, class_name, attr["Description"], count_top, count_bot, attr['Manufacturer'], 
+                            attr["Partnumber"], attr["Marking"], "", attr["Package"], attr["Placement"], "", attr["IO/Pin Count"], attr["Diameter"], 
                             attr["Length"], attr["Width"], attr["Height"], attr["Metrik"]]
                         rows.append(row)
         return rows

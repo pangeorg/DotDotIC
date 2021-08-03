@@ -125,6 +125,9 @@ class AutoCompleteFile:
                         "Standard_IC", "Crystal", "Standard_analog", "uC", "Specialty", "Memory", 
                         "EM", "PCB", "Portfolio", "Calculation", ]
 
+    DEFAULT_PLACEMENT = ["SMD small", "SMD large", "THT solder", "THT Pin-in-Paste", "Pressfit", "Part of Final Assy", "not evaluated"]
+    _ATTR = ["Packages", "Manufacturers", "Metriks", "Placement"]
+
 
     def __init__(self, filename=None):
         if not os.path.exists(AutoCompleteFile.DEFAULTFILE):
@@ -140,64 +143,49 @@ class AutoCompleteFile:
     def load(self, filename):
         config = configparser.ConfigParser()
         config.read(filename)
-        try:
-            self.packages = list(set([c.strip() for _, c in config["Packages"].items()]))
-        except:
-            self.packages = AutoCompleteFile.DEFAULT_PACKAGES.copy()
-        try:
-            self.manufacturers = list(set([c.strip() for _, c in config["Manufacturers"].items()]))
-        except:
-            self.manufacturers = AutoCompleteFile.DEFAULT_MANUFACTURERS.copy()
-        try:
-            self.metriks = list(set([c.strip() for _, c in config["Metriks"].items()]))
-        except:
-            self.metriks = AutoCompleteFile.DEFAULT_METRIKS.copy()
+        for a in AutoCompleteFile._ATTR:
+            al = a.lower()
+            try:
+                setattr(self, al, list(set([c.strip() for _, c in config[a].items()])))
+            except:
+                setattr(self, al, getattr(AutoCompleteFile, "DEFAULT_" + a.upper()).copy())
         self.packages.sort()
         self.manufacturers.sort()
         self.metriks.sort()
 
-    def update(self, filename=None, packages=[], manufacturers=[], metriks=[]):
+    def update(self, filename=None, **kwargs):
         if filename is not None:
             config = configparser.ConfigParser()
             config.read(filename)
-            _packages = [c.strip() for _, c in config["Packages"].items()]
-            _manufacturers = [c.strip() for _, c in config["Manufacturers"].items()]
-            _metriks = [c.strip() for _, c in config["Metriks"].items()]
-            if len(packages) > 0: _packages.extend(packages)
-            if len(manufacturers) > 0: _manufacturers.extend(manufacturers)
-            if len(metriks) > 0: _manufacturers.extend(metriks)
-            self.packages = list(set(_packages))
-            self.manufacturers = list(set(_manufacturers))
-            self.metriks = list(set(_metriks))
+            for a in AutoCompleteFile._ATTR:
+                l = [c.strip() for _, c in config[a].items()]
+                ul = kwargs.get(a.lower(), [])
+                if len(ul) > 0: l.extend(ul)
+                setattr(self, a.lower(), list(set(l)))
             self.write(filename)
         else:
-            self.packages.extend(packages)
-            self.manufacturers.extend(manufacturers)
-            self.metriks.extend(metriks)
-            self.packages = list(set(self.packages))
-            self.manufacturers = list(set(self.manufacturers))
-            self.metriks = list(set(self.metriks))
-        
+            for a in AutoCompleteFile._ATTR:
+                al = a.lower()
+                ul = kwargs.get(al, [])
+                self_list = getattr(self, al)
+                self_list.extend(ul)
+                setattr(self, al, list(set(self_list)))
         self.packages.sort()
         self.manufacturers.sort()
         self.metriks.sort()
 
     def write(self, filename):
-        self.packages.sort()
-        self.manufacturers.sort()
         config = configparser.ConfigParser()
-        config["Packages"] = {"Package{:03d}".format(i):c for i,c in enumerate(self.packages)}
-        config["Manufacturers"] = {"Manufacturer{:03d}".format(i):c for i,c in enumerate(self.manufacturers)}
-        config["Metriks"] = {"Metrik{:03d}".format(i):c for i,c in enumerate(self.metriks)}
+        for a in AutoCompleteFile._ATTR:
+            config[a] = {a + "{:03d}".format(i):c for i,c in enumerate(getattr(self, a.lower()))}
         with open(filename, "w") as f:
             config.write(f)
 
     @staticmethod
     def write_default():
         config = configparser.ConfigParser()
-        config["Packages"] = {"Package{:03d}".format(i):c for i,c in enumerate(AutoCompleteFile.DEFAULT_PACKAGES)}
-        config["Manufacturers"] = {"Manufacturer{:03d}".format(i):c for i,c in enumerate(AutoCompleteFile.DEFAULT_MANUFACTURERS)}
-        config["Metriks"] = {"Metriks{:03d}".format(i):c for i,c in enumerate(AutoCompleteFile.DEFAULT_METRIKS)}
+        for a in AutoCompleteFile._ATTR:
+            config[a] = {a + "{:03d}".format(i):c for i,c in enumerate(getattr(AutoCompleteFile, "DEFAULT_" + a.upper()))}
         with open(AutoCompleteFile.DEFAULTFILE, "w") as f:
             config.write(f)
 

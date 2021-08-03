@@ -224,11 +224,11 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         pcbAttr = ["ECU Name", "PCB Name", "Side", "Length", "Width"]
 
         self.attribute_widget_names = ["lineEdit_description", "lineEdit_marking", 
-                     "lineEdit_partnumber", "comboBox_manufacturer", "comboBox_package", 
+                     "lineEdit_partnumber", "comboBox_manufacturer", "comboBox_package", "comboBox_placement", 
                      "lineEdit_length", "lineEdit_width", "lineEdit_height", "lineEdit_diameter", 
                      "lineEdit_pincount", "comboBox_metrik"]
 
-        self.attribute_names = ["Description", "Marking", "Partnumber", "Manufacturer", "Package", "Length",
+        self.attribute_names = ["Description", "Marking", "Partnumber", "Manufacturer", "Package", "Placement", "Length",
                       "Width", "Diameter", "Height", "IO/Pin Count", "Metrik"]
 
         for i, k in enumerate(self.dataLineEditsNames):
@@ -329,6 +329,13 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         self.comboBox_metrik.addItems(completion.metriks)
         self.comboBox_metrik.setCurrentText("")
         metrik_completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
+
+        placement_completer = QtWidgets.QCompleter(completion.placement)
+        placement_completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.comboBox_placement.lineEdit().setCompleter(placement_completer)
+        self.comboBox_placement.addItems(completion.placement)
+        self.comboBox_placement.setCurrentText("")
+        placement_completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
 
         # self.pushButtonFolder.clicked.connect(self.select_folder)
         self.pushButtonZoomOut.clicked.connect(self.graphicsView.zoom_out)
@@ -519,7 +526,3 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         i = self.attribute_widget_names.index(name)
         attr = self.attribute_names[i]
         self.canvas.set_component_attribute(attr, text)
-
-        # for k, widget in self.attribute_widgets.items():
-        #     value = getText(widget)
-        #     self.canvas.set_component_attribute(k, value)
