@@ -1,7 +1,9 @@
 
 import os
-from PyQt5.QtWidgets import QDialog, QMainWindow, QMenu, QAction, QTextEdit, QVBoxLayout
+from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWidgets import QDialog, QMainWindow, QMenu, QAction, QTextEdit, QVBoxLayout, QShortcut
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import Qt
 from ddg import CentralWidget
 from ddg.canvas import EditStyle, recentlyUsed
 from ddg import __version__
@@ -26,7 +28,26 @@ class MainWindow(QMainWindow):
         self._centralWidget.canvas.points_loaded.connect(self.update_title)
         self._centralWidget.canvas.points_saved.connect(self.update_title)
         self._centralWidget.pushButtonFolder.clicked.connect(self.select_folder)
-        self._centralWidget.canvas.state_changed = False
+        self.shortcut_undo = QShortcut(Qt.CTRL + Qt.Key_Z, self)
+        self.shortcut_undo.activated.connect(self.undo)
+        self.shortcut_redo = QShortcut(Qt.CTRL + Qt.Key_Y, self)
+        self.shortcut_redo.activated.connect(self.redo)
+
+    def update_all(self):
+        self.update()
+        self._centralWidget.update()
+        self._centralWidget.point_widget.update()
+        self._centralWidget.point_widget.display_classes()
+        self._centralWidget.point_widget.display_count_tree()
+        self._centralWidget.canvas.display_points()
+
+    def undo(self):
+        self._centralWidget.canvas.undo()
+        self.update_all()
+
+    def redo(self):
+        self._centralWidget.canvas.redo()
+        self.update_all()
     
     def _createMenuBar(self):
         import os
@@ -116,7 +137,7 @@ class MainWindow(QMainWindow):
     def load_points(self, filename):
         if self.check_save():
             if os.path.exists(filename):
-                self._centralWidget.canvas.load_points(filename)
+                self._centralWidget.canvas.load_points_from_file(filename)
             else:
                 message = filename + " not found"
                 QtWidgets.QMessageBox.warning(self.parent(), 'Warning', message, QtWidgets.QMessageBox.Ok)
@@ -205,11 +226,11 @@ class MainWindow(QMainWindow):
         self._centralWidget.rectsToolButton.setChecked(True)
         self._centralWidget.canvas.set_edit_style(EditStyle.RECTS)
 
-    def update_title(self, survey_id, filename):
+    def update_title(self, filename):
         self.setWindowTitle("{:} --- {:}".format(_TITLE_STRING, filename))
 
     def check_save(self):
-        if not self._centralWidget.canvas.state_changed:
+        if not self._centralWidget.canvas.get_changed():
             return True
         msgBox = QtWidgets.QMessageBox()
         msgBox.setWindowTitle('Warning')
@@ -221,6 +242,11 @@ class MainWindow(QMainWindow):
         if response == QtWidgets.QMessageBox.Ok:
             return True
         return False
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        if key == Qt.Key_Escape:
+            pass
 
     def closeEvent(self, event):
         if self.check_save():

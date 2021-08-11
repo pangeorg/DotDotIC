@@ -25,7 +25,7 @@
 import os
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QDialog, QMainWindow, QMenu, QAction, QLineEdit, QVBoxLayout, QLabel
+from PyQt5.QtWidgets import QDialog, QMenu
 from .chip_dialog import ChipDialog
 from .ui.point_widget_ui import Ui_PointWidget as WIDGET
 from .ui.input_dialog_ui import Ui_InputDialog as DIALOG
@@ -253,21 +253,22 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                             count += len(self.canvas.points[image].get(class_name, []))
                     class_count_item.setData(str(count), QtCore.Qt.EditRole)
                     total_count += count
+                    if class_name == self.canvas.current_class_name:
+                        font = class_item.font()
+                        font.setBold(True)
+                        class_item.setFont(font)
                     category_item.appendRow([class_item, class_count_item, class_color_item])
                 if len(invisible) == len(classes):
                     category_item.setCheckState(QtCore.Qt.Unchecked)
             category_count_item.setData(str(total_count), QtCore.Qt.EditRole)
             root.appendRow([category_item, category_count_item, QtGui.QStandardItem("")])
         for row in range(self.classModel.rowCount()):
-                index = self.classModel.index(row, 0)
-                item = self.classModel.itemFromIndex(index)
-                self.classTree.setExpanded(index, self.tree_expanded.get(item.data(0), False))
+            index = self.classModel.index(row, 0)
+            item = self.classModel.itemFromIndex(index)
+            self.classTree.setExpanded(index, self.tree_expanded.get(item.data(0), False))
         self.classTree.resizeColumnToContents(0)
-        # for category, classes in self.canvas.data.items():
-        #     print(category)
-        #     for c in classes:
-        #         print("---> " + c)
-
+        if self.canvas.current_class_name:
+            self.select_tree_item_from_name(self.canvas.current_class_name)
 
     def display_count_tree(self):
         expanded = traverse_tree(self.model.invisibleRootItem(), self.treeView, expanded={}, parent_index=None, action="get")
@@ -317,15 +318,15 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                 msg.setWindowTitle("Error")
                 msg.exec_()
                 return 
-            self.canvas.export_counts(file_name[0], self.lineEditSurveyId.text())
+            self.canvas.export_counts(file_name[0])
 
     def export_points(self):
         file_name = QtWidgets.QFileDialog.getSaveFileName(self, 'Export Points', os.path.join(self.canvas.directory, 'points.csv'), 'Text CSV (*.csv)')
         if file_name[0] != '':
-            self.canvas.export_points(file_name[0], self.lineEditSurveyId.text())
+            self.canvas.export_points(file_name[0])
     
     def export_details(self):
-        self.chip_dialog = ChipDialog(self.canvas.classes, self.canvas.points, self.canvas.directory, self.lineEditSurveyId.text())
+        self.chip_dialog = ChipDialog(self.canvas.classes, self.canvas.points, self.canvas.directory, self.canvas.survey_id)
         self.chip_dialog.show()
     
     def get_item_from_name(self, name):
@@ -387,6 +388,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                 self.canvas.display_points()
         elif index.column() == 0:
             # edit checkstate
+            self.classTree.selectionModel().clear()
             category_item = index.parent()
             name = category_item.child(index.row(), 0).data(0)
             if name is None:
@@ -398,6 +400,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                     class_item.setCheckState(state)
                     self.canvas.class_visibility[class_item.data(0)] = state > 1
                 self.canvas.set_current_class(name)
+                self.select_tree_item(item)
             else:
                 category_item = self.classModel.itemFromIndex(index.parent())
                 item = category_item.child(index.row(), 0)
@@ -405,7 +408,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                 state = item.checkState()
                 self.canvas.class_visibility[name] = state > 1
                 self.canvas.set_current_class(name)
-            # self.canvas.display_points()
+                self.select_tree_item_from_name(name)
 
     def image_loaded(self, directory, file_name):
         self.display_classes()
@@ -415,10 +418,10 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
         file_name = QtWidgets.QFileDialog.getOpenFileName(self, 'Select Points File', self.canvas.directory, 'Point Files (*.pnt)')
         if file_name[0] != '':
             self.previous_file_name = file_name[0]
-            self.canvas.load_points(file_name[0])
+            self.canvas.load_points_from_file(file_name[0])
 
-    def points_loaded(self, survey_id, filename=None):
-        self.lineEditSurveyId.setText(survey_id)
+    def points_loaded(self, filename=None):
+        self.lineEditSurveyId.setText(self.canvas.survey_id)
         self.display_classes()
         self.display_count_tree()
         self.update_ui_settings()
@@ -531,7 +534,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
     def autosave(self):
         filename = os.path.join(self.canvas.directory, "autosave.pnt")
         self.saving.emit()
-        self.canvas.save_points(filename, self.lineEditSurveyId.text())
+        self.canvas.save_points(filename)
 
     def set_autosave(self):
         self.timer = QtCore.QTimer()
@@ -544,7 +547,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
             self.save()
         else:
             self.saving.emit()
-            self.canvas.save_points(self.previous_file_name, self.lineEditSurveyId.text())
+            self.canvas.save_points(self.previous_file_name)
 
     def save(self, override=False):
         file_name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save Points', os.path.join(self.canvas.directory, 'untitled.pnt'), 'Point Files (*.pnt)')
@@ -553,7 +556,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
             if override is False and self.canvas.directory != os.path.split(file_name[0])[0]:
                 QtWidgets.QMessageBox.warning(self.parent(), 'ERROR', 'You are attempting to save the pnt file outside of the working directory. Operation canceled. POINT DATA NOT SAVED.', QtWidgets.QMessageBox.Ok)
             else:
-                if self.canvas.save_points(file_name[0], self.lineEditSurveyId.text()) is False:
+                if self.canvas.save_points(file_name[0]) is False:
                     msg_box = QtWidgets.QMessageBox()
                     msg_box.setWindowTitle('ERROR')
                     msg_box.setText('Save Failed!')

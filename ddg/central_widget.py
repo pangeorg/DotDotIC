@@ -191,6 +191,7 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         self.point_widget.hide_custom_fields.connect(self.hide_custom_fields)
         self.point_widget.saving.connect(self.display_quick_save)
         self.point_widget.class_selection_changed.connect(self.display_attributes)
+        self.point_widget.lineEditSurveyId.textEdited.connect(self.set_survey_id)
 
         self.save_shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(self.tr("Ctrl+S")), self)  # quick save using Ctrl+S
         self.save_shortcut.setContext(QtCore.Qt.WidgetWithChildrenShortcut)
@@ -526,3 +527,6 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         i = self.attribute_widget_names.index(name)
         attr = self.attribute_names[i]
         self.canvas.set_component_attribute(attr, text)
+
+    def set_survey_id(self):
+        self.canvas.survey_id = self.point_widget.lineEditSurveyId.text()
