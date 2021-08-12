@@ -236,6 +236,10 @@ class Canvas(QtWidgets.QGraphicsScene):
             elif type(graphic) == QtWidgets.QGraphicsTextItem:
                 self.removeItem(graphic)
 
+    def clear_pixmap(self):
+        for graphic in self.items():
+            self.removeItem(graphic)
+
     def clear_selection(self):
         self.selection = []
         if self.edit_style == EditStyle.RECTS:
@@ -307,9 +311,7 @@ class Canvas(QtWidgets.QGraphicsScene):
                         self.addEllipse(QtCore.QRectF(point.x() - ((display_radius - 1) / 2), point.y() - ((display_radius - 1) / 2), display_radius, display_radius), pen, brush)
 
     def display_measures(self):
-        if self.current_image_name is None:
-            return
-        if self.edit_style != EditStyle.RECTS:
+        if self.current_image_name is None or self.edit_style != EditStyle.RECTS:
             return
         self.clear_measures()
 
@@ -322,7 +324,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         scale = image_scale.scale
         unit = image_scale.unit
 
-        mrects = self.measure_rects[self.current_image_name].copy()
+        # mrects = self.measure_rects[self.current_image_name].copy()
         mrects_data = self.measure_rects_data[self.current_image_name].copy()
         self.measure_rects[self.current_image_name] = []
         self.measure_rects_data[self.current_image_name] = []
@@ -396,7 +398,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         peek = drop_list[0]
         if not isinstance(peek, str):
             peek = peek.toLocalFile()
-        self.set_changed(True)
+        self.reset_undo_stack()
         if os.path.isdir(peek):
             if self.directory == '':
                 # strip off trailing sep from path
@@ -434,9 +436,11 @@ class Canvas(QtWidgets.QGraphicsScene):
         else:
             base_path = os.path.split(peek)[0]
             for entry in drop_list:
-                file_name = entry.toLocalFile()
+                if not isinstance(entry, str):
+                    file_name = entry.toLocalFile()
+                else:
+                    file_name = entry
                 path = os.path.split(file_name)[0]
-                error = False
                 message = ''
                 if os.path.isdir(file_name):
                     message = 'Mix of files and directories detected. Load canceled.'
@@ -463,7 +467,7 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.load_images(drop_list)
 
     def load_image(self, in_file_name):
-        self.set_changed(True)
+        self.reset_undo_stack()
         Image.MAX_IMAGE_PIXELS = 1000000000
         file_name = in_file_name
         if type(file_name) == QtCore.QUrl:
@@ -594,6 +598,8 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.colors[class_name] = QtGui.QColor(self.colors[class_name][0], self.colors[class_name][1], self.colors[class_name][2])
 
         for image in data["measures"]:
+            self.measure_rects[image].clear()
+            self.measure_rects_data[image].clear()
             for rect in data["measures"][image]:
                 x = rect['x']
                 y = rect['y']
@@ -608,11 +614,14 @@ class Canvas(QtWidgets.QGraphicsScene):
                 self.measure_rects_data[image].append({"x":x, "y":y, "width":w, "height":h})
 
     def load_points_from_file(self, file_name):
+        import os
         self.reset()
         file = open(file_name, 'r')
-        self.directory = os.path.split(file_name)[0]
-        self.directory_set.emit(self.directory)
         data = json.load(file)
+        directory = os.path.split(file_name)[0]
+        self.directory = directory
+        self.directory_set.emit(self.directory)
+
         self.apply_points(data)
 
         self.points_loaded.emit(file_name)
@@ -638,7 +647,7 @@ class Canvas(QtWidgets.QGraphicsScene):
 
     def update_undo_stack(self):
         if self._redone or self._undone:
-            # self._undo_stack = self._undo_stack[self._undo_pointer:]
+            self._undo_stack = self._undo_stack[self._undo_pointer:]
             self._undo_pointer = 0
             self._redone = False
             self._undone = False
@@ -660,11 +669,11 @@ class Canvas(QtWidgets.QGraphicsScene):
             return
         last_edit = json.loads(self._undo_stack[self._undo_pointer])
         if not self._undone:
-            output = self.package_points()
-            self._undo_stack.insert(0, json.dumps(output.copy()))
+            self._undo_stack.insert(0, json.dumps(self.package_points()))
+            self._undo_pointer += 1
         self._undo_pointer += 1
         self.apply_points(last_edit)
-        print("undo", len(self._undo_stack), self._undo_pointer, self._undone)
+        # print("undo", len(self._undo_stack), self._undo_pointer, self._undone)
         self._undone = True
 
     def redo(self):
@@ -672,19 +681,21 @@ class Canvas(QtWidgets.QGraphicsScene):
         nstack = len(self._undo_stack)
         if up < 1 or nstack == 0: 
             return
+        if not self._redone:
+            self._undo_pointer -= 1
         self._undo_pointer -= 1
         last_edit = json.loads(self._undo_stack[self._undo_pointer])
         self._redone = True
         self.apply_points(last_edit)
-        print("redo", len(self._undo_stack), self._undo_pointer)
+        # print("redo", len(self._undo_stack), self._undo_pointer)
 
     def get_changed(self):
         return self._state_changed
 
     def measure_area(self, rect):
-        self.set_changed(True)
         if self.current_image_name is None or self.edit_style != EditStyle.RECTS:
             return
+        self.set_changed(True)
 
         image_scale = self.image_scale.get(self.current_image_name, Scale)
 

@@ -28,7 +28,7 @@ from itertools import cycle
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ddg import Canvas
-from ddg.canvas import Scale, completion
+from ddg.canvas import EditStyle, Scale, completion
 from ddg import PointWidget
 from .ui.central_widget_ui import Ui_CentralWidget as CLASS_DIALOG
 
@@ -364,6 +364,11 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         self.rectsToolButton.setAutoExclusive(True)
         self.toolBar.addWidget(self.rectsToolButton)
 
+    def reset_toolbar(self):
+        self.pointsToolButton.setChecked(True)
+        self.rectsToolButton.setChecked(False)
+        self.canvas.set_edit_style(EditStyle.POINTS)
+
     def copy_all_attributes(self):
         from os import linesep
         clipboard = QtWidgets.QApplication.clipboard()
@@ -432,6 +437,13 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
                 widget.setDisabled(False)
                 value = self.canvas.class_attributes[self.canvas.current_class_name].get(k, "")
                 setText(widget, value)
+
+    def display_ecu_name(self):
+        if self.canvas.current_image_name is not None:
+            ecu_name, pcb_name, position = self.canvas.get_ecu_info(self.canvas.current_image_name)
+            self.lineEdit_ecu.setText(ecu_name)
+            self.lineEdit_pcb.setText(pcb_name)
+            self.comboBox_pos.setCurrentText(position)
                 
     def display_working_directory(self, directory):
         self.labelWorkingDirectory.setText(directory)
@@ -490,7 +502,7 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         y = self.lineEditY.text()
         self.canvas.save_pcb_info(x, y)
 
-    def update_ecu_name(self, *args, **kwargs):
+    def update_ecu_name(self):
         new_name = None
         ecu_name, pcb_name, position = self.canvas.get_ecu_info(self.canvas.current_image_name)
         new_ecu = self.lineEdit_ecu.text()

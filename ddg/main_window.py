@@ -40,6 +40,17 @@ class MainWindow(QMainWindow):
         self._centralWidget.point_widget.display_classes()
         self._centralWidget.point_widget.display_count_tree()
         self._centralWidget.canvas.display_points()
+        self._centralWidget.canvas.display_measures()
+        self._centralWidget.display_attributes()
+        self._centralWidget.display_ecu_name()
+
+    def reset(self):
+        if self.check_save():
+            self._centralWidget.canvas.reset()
+            self._centralWidget.canvas.clear_pixmap()
+            self._centralWidget.point_widget.previous_file_name = None
+            self.setWindowTitle(_TITLE_STRING)
+            self.update_all()
 
     def undo(self):
         self._centralWidget.canvas.undo()
@@ -59,6 +70,7 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(self.quickSaveAction)
         fileMenu.addAction(self.saveAction)
         fileMenu.addAction(self.openAction)
+        fileMenu.addAction(self.addImageAction)
         recentlyUsedMenu = QMenu("Recently Used", fileMenu)
 
         if len(recentlyUsed.files) == 0:
@@ -67,7 +79,6 @@ class MainWindow(QMainWindow):
             recentlyUsedMenu.addAction(action)
         else:
             for f in recentlyUsed.files:
-                fname = os.path.basename(f)
                 action = QAction(f, self)
                 action.triggered.connect(partial(self.load_points, f))
                 recentlyUsedMenu.addAction(action)
@@ -76,10 +87,15 @@ class MainWindow(QMainWindow):
         fileMenu.addSeparator()
         fileMenu.addAction(self.exportCountsAction)
         fileMenu.addAction(self.exportDetailsAction)
+        fileMenu.addSeparator()
+        fileMenu.addAction(self.resetAction)
 
         # --- Edit menu
         editMenu = QMenu("&Edit", self)
         menuBar.addMenu(editMenu)
+        editMenu.addAction(self.undoAction)
+        editMenu.addAction(self.redoAction)
+        editMenu.addSeparator()
         editMenu.addAction(self.editPointsAction)
         editMenu.addAction(self.editMeasureAction)
 
@@ -101,6 +117,12 @@ class MainWindow(QMainWindow):
         self.quickSaveAction.triggered.connect(self._centralWidget.point_widget.quick_save)
         self.openAction = QAction("Open Project/Points", self)
         self.openAction.triggered.connect(self.load)
+        self.addImageAction = QAction("Add Image to ECU...", self)
+        self.addImageAction.triggered.connect(self.load_image)
+
+        self.resetAction = QAction("Reset All", self)
+        self.resetAction.triggered.connect(self.reset)
+
         # import metadata merge in load project ?
         self.exportCountsAction = QAction("Export to Text (csv)", self)
         self.exportCountsAction.triggered.connect(self._centralWidget.point_widget.export_counts)
@@ -112,6 +134,12 @@ class MainWindow(QMainWindow):
 
         self.showControlsAction = QAction("Controls", self)
         self.showControlsAction.triggered.connect(self.display_controls)
+
+        self.undoAction = QAction("Undo (Ctrl+Z)", self)
+        self.undoAction.triggered.connect(self.undo)
+
+        self.redoAction = QAction("Redo (Ctrl+Y)", self)
+        self.redoAction.triggered.connect(self.redo)
 
         self.editPointsAction = QAction("Edit Counts", self)
         self.editPointsAction.setCheckable(True)
@@ -138,9 +166,21 @@ class MainWindow(QMainWindow):
         if self.check_save():
             if os.path.exists(filename):
                 self._centralWidget.canvas.load_points_from_file(filename)
+                self.set_edit_points()
             else:
                 message = filename + " not found"
                 QtWidgets.QMessageBox.warning(self.parent(), 'Warning', message, QtWidgets.QMessageBox.Ok)
+
+    def load_image(self):
+        image_format = [".jpg", ".jpeg", ".png", ".tif"]
+        filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Select Image File', self._centralWidget.canvas.directory, 'Image Files (*.jpg *.jpeg *.png *.tif)')[0]
+        if len(filename):
+            self._centralWidget.canvas.load([filename])
+        elif len(filename) == 0:
+            return
+        else:
+            message = filename + " not found or wronge file format (" + ",".join(image_format) + ")"
+            QtWidgets.QMessageBox.warning(self.parent(), 'Warning', message, QtWidgets.QMessageBox.Ok)
 
     def select_folder(self):
         if self.check_save():
