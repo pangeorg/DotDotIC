@@ -493,48 +493,28 @@ class Canvas(QtWidgets.QGraphicsScene):
                 self.points[self.current_image_name] = {}
             if self.current_image_name not in self.pcb_info.keys():
                 self.pcb_info[self.current_image_name] = {"x":"", "y":""}
-            try:
-                img = Image.open(file_name)
-                channels = len(img.getbands())
-                array = np.array(img)
-                img.close()
-                if array.shape[0] > 10000 or array.shape[1] > 10000:
-                    # Make smaller tiles to save memory
-                    stride = 100
-                    max_stride = (array.shape[1] // stride) * stride
-                    tail = array.shape[1] - max_stride
-                    tile = np.zeros((array.shape[0], stride, array.shape[2]), dtype=np.uint8)
-                    for s in range(0, max_stride, stride):
-                        tile[:, :] = array[:, s:s + stride]
-                        qt_image = QtGui.QImage(tile.data, tile.shape[1], tile.shape[0], QtGui.QImage.Format_RGB888)
-                        pixmap = QtGui.QPixmap.fromImage(qt_image)
-                        item = self.addPixmap(pixmap)
-                        item.moveBy(s, 0)
-                    # Fix for windows, thin slivers at the end cause the app to hang. QImage bug?
-                    if tail > 0:
-                        tile2 = np.ones((array.shape[0], stride, array.shape[2]), dtype=np.uint8) * 255
-                        tile2[:, 0:tail] = array[:, max_stride:array.shape[1]]
-                        qt_image = QtGui.QImage(tile2.data, tile2.shape[1], tile2.shape[0], QtGui.QImage.Format_RGB888)
-                        pixmap = QtGui.QPixmap.fromImage(qt_image)
-                        item = self.addPixmap(pixmap)
-                        item.moveBy(max_stride, 0)
+            # try:
+            img = Image.open(file_name)
+            channels = len(img.getbands())
+            array = np.array(img)
+            array = np.array(array[1:-1, 1:-1, ...]) # necessary bugfix for some images. Qt cannot add the pixmap if this line is removed
+            img.close()
+            if channels == 1:
+                self.qt_image = QtGui.QImage(array.data, array.shape[1], array.shape[0], QtGui.QImage.Format_Grayscale8)
+            else:
+                # Apply basic min max stretch to the image
+                for chan in range(channels):
+                    array[:, :, chan] = np.interp(array[:, :, chan], (array[:, :, chan].min(), array[:, :, chan].max()), (0, 255))
+                bpl = int(array.nbytes / array.shape[0])
+                if array.shape[2] == 4:
+                    self.qt_image = QtGui.QImage(array.data, array.shape[1], array.shape[0], QtGui.QImage.Format_RGBA8888)
                 else:
-                    if channels == 1:
-                        self.qt_image = QtGui.QImage(array.data, array.shape[1], array.shape[0], QtGui.QImage.Format_Grayscale8)
-                    else:
-                        # Apply basic min max stretch to the image
-                        for chan in range(channels):
-                            array[:, :, chan] = np.interp(array[:, :, chan], (array[:, :, chan].min(), array[:, :, chan].max()), (0, 255))
-                        bpl = int(array.nbytes / array.shape[0])
-                        if array.shape[2] == 4:
-                            self.qt_image = QtGui.QImage(array.data, array.shape[1], array.shape[0], QtGui.QImage.Format_RGBA8888)
-                        else:
-                            self.qt_image = QtGui.QImage(array.data, array.shape[1], array.shape[0], bpl, QtGui.QImage.Format_RGB888)
-                    self.pixmap = QtGui.QPixmap.fromImage(self.qt_image)
-                    self.addPixmap(self.pixmap)
-            except FileNotFoundError:
-                QtWidgets.QMessageBox.critical(None, 'File Not Found', '{} is not in the same folder as the point file.'.format(self.current_image_name))
-                self.image_loaded.emit(self.directory, self.current_image_name)
+                    self.qt_image = QtGui.QImage(array.data, array.shape[1], array.shape[0], bpl, QtGui.QImage.Format_RGB888)
+            self.pixmap = QtGui.QPixmap.fromImage(self.qt_image)
+            self.addPixmap(self.pixmap)
+            # except FileNotFoundError:
+            #     QtWidgets.QMessageBox.critical(None, 'File Not Found', '{} is not in the same folder as the point file.'.format(self.current_image_name))
+            #     self.image_loaded.emit(self.directory, self.current_image_name)
             self.image_loaded.emit(self.directory, self.current_image_name)
             if self.edit_style == EditStyle.POINTS:
                 self.display_points()
