@@ -93,14 +93,16 @@ class ECUInputDialog(QDialog, ECU_DIALOG):
         self.pcb_comboBox.currentTextChanged.connect(self.check_ok)
         self.pos_comboBox.currentTextChanged.connect(self.check_ok)
         self.last_exit = 0
+        self.w = 500
+        self.h = 167
 
-    def check_ok(self, text):
+    def check_ok(self):
         ecu_name, pcb_name, pos = self.ecu_comboBox.currentText(), self.pcb_comboBox.currentText(), self.pos_comboBox.currentText()
         if ecu_name == "" or pcb_name == "":
             self.pushButtonOk.setEnabled(False)
             return
         try:
-            image = self.canvas.ecus[ecu_name][pcb_name][pos]
+            _ = self.canvas.ecus[ecu_name][pcb_name][pos]
         except KeyError:
             self.pushButtonOk.setEnabled(True)
             return
@@ -117,8 +119,8 @@ class ECUInputDialog(QDialog, ECU_DIALOG):
         self.pcb_comboBox.setEditable(True)
 
     def run(self, image):
-        self.image = image
-        self.setWindowTitle(image)
+        self.image = os.path.basename(image)
+        self.setWindowTitle(self.image)
         ecu_names = list(self.canvas.ecus.keys())
         self.ecu_comboBox.model().clear()
         if len(ecu_names) == 0:
@@ -128,12 +130,21 @@ class ECUInputDialog(QDialog, ECU_DIALOG):
                 self.ecu_comboBox.addItem(ecu_name)
         self.ecu_comboBox.setCurrentIndex(0)
         self.ecu_comboBox.setEditable(True)
-        self.check_ok("")
+        self.check_ok()
+        pixmap = QtGui.QPixmap(image)
+        rect = self.geometry()
+        w, h = rect.width(), rect.height()
+        self.imageLabel.setPixmap(pixmap.scaled(w, h, QtCore.Qt.KeepAspectRatio))
+        self.imageLabel.show()
+        desktop_rect = QtWidgets.QApplication.desktop().availableGeometry(self)
+        center = desktop_rect.center()
+        self.setGeometry(center.x()-self.w//2, center.y()-self.h//2, self.w, self.h)
         self.exec_()
 
     def cancel(self):
         self.last_exit = 0
         self.close()
+        return 1
 
     def ok(self):
         ecu_name = self.ecu_comboBox.currentText()
@@ -143,6 +154,8 @@ class ECUInputDialog(QDialog, ECU_DIALOG):
             self.canvas.set_ecu_info(ecu_name, pcb_name, position, self.image)
             self.last_exit = 1
             self.close()
+            return 1
+        return 0
 
 
 class Canvas(QtWidgets.QGraphicsScene):
@@ -159,9 +172,7 @@ class Canvas(QtWidgets.QGraphicsScene):
                       "Discrete > 3 Pins":QtGui.QColor(QtCore.Qt.darkMagenta), "Connectors":QtGui.QColor(QtCore.Qt.cyan)}
 
     def __init__(self):
-        from collections import defaultdict
         QtWidgets.QGraphicsScene.__init__(self)
-        self.ecu_dialog = ECUInputDialog(self)
         self.reset()
 
     @property
@@ -474,11 +485,13 @@ class Canvas(QtWidgets.QGraphicsScene):
             file_name = in_file_name.toLocalFile()
         
         image = os.path.basename(file_name)
-        ecu_name, pcb_name, pos = self.get_ecu_info(image)
+        ecu_name, _, _ = self.get_ecu_info(image)
+        self.ecu_dialog = ECUInputDialog(self)
         if not ecu_name: 
-            self.ecu_dialog.run(image)
+            self.ecu_dialog.run(file_name)
             if not self.ecu_dialog.last_exit: # cancel
                 return
+        self.ecu_dialog.close()
 
         if self.directory == '':
             self.directory = os.path.split(file_name)[0]
@@ -525,16 +538,18 @@ class Canvas(QtWidgets.QGraphicsScene):
 
     def load_images(self, images):
         self.set_changed(True)
-        for file in images:
-            file_name = file
-            if type(file) == QtCore.QUrl:
-                file_name = file.toLocalFile()
+        for f in images:
+            file_name = f
+            if type(f) == QtCore.QUrl:
+                file_name = f.toLocalFile()
 
             image_name = os.path.split(file_name)[1]
             if image_name not in self.points:
                 self.points[image_name] = {}
         if len(images) > 0:
-            self.load_image(images[0])
+            for img in images:
+                self.load_image(img)
+                # self.load_image(images[0])
 
     def apply_points(self, data):
         self.survey_id = data['metadata']['survey_id']
