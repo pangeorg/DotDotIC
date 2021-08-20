@@ -23,11 +23,13 @@
 #
 # --------------------------------------------------------------------------
 import os
+import io
 import json
 import glob
 import numpy as np
 from enum import Enum
 import dataclasses
+from zipfile import ZipFile
 from dataclasses import dataclass
 from ddg.config import AutoCompleteFile, DDConfig, RecentlyUsed
 from .ui.ecu_input_dialog_ui import Ui_ECUInputDialog as ECU_DIALOG
@@ -38,10 +40,34 @@ from PyQt5.QtWidgets import QDialog
 
 completion = AutoCompleteFile()
 recentlyUsed = RecentlyUsed()
+Image.MAX_IMAGE_PIXELS = 1000000000
 
 class EditStyle(Enum):
     POINTS = 1
     RECTS = 2
+
+def pixmap_from_image_array(array, channels):
+    arr = np.array(array[1:-1, 1:-1, ...]) # necessary bugfix for some images. Qt cannot add the pixmap if this line is removed
+    if channels == 1:
+        qt_image = QtGui.QImage(arr.data, arr.shape[1], arr.shape[0], QtGui.QImage.Format_Grayscale8)
+    else:
+        # Apply basic min max stretch to the image
+        for chan in range(channels):
+            arr[:, :, chan] = np.interp(arr[:, :, chan], (arr[:, :, chan].min(), arr[:, :, chan].max()), (0, 255))
+        bpl = int(arr.nbytes / arr.shape[0])
+        if arr.shape[2] == 4:
+            qt_image = QtGui.QImage(arr.data, arr.shape[1], arr.shape[0], QtGui.QImage.Format_RGBA8888)
+        else:
+            qt_image = QtGui.QImage(arr.data, arr.shape[1], arr.shape[0], bpl, QtGui.QImage.Format_RGB888)
+    return QtGui.QPixmap.fromImage(qt_image)
+
+def generate_file_list(files):
+    result = {}
+    for f in files:
+        _, ext = os.path.splitext(f)
+        hashname = str(hash(f)) + ext
+        result[f] = hashname
+    return result
 
 @dataclass
 class Scale:
@@ -60,7 +86,6 @@ class Scale:
 
 def attributes_from_dict(attrs):
     return {k:Attributes.from_dict(v) for k, v in attrs.items()}
-
 
 class Attributes(dict):
     DEFAULT_KEYS = ["Name", "Partnumber", "Description", "Short Description", "Placement",
@@ -156,7 +181,6 @@ class ECUInputDialog(QDialog, ECU_DIALOG):
             self.close()
             return 1
         return 0
-
 
 class Canvas(QtWidgets.QGraphicsScene):
     image_loaded = QtCore.pyqtSignal(str, str)
@@ -410,32 +434,18 @@ class Canvas(QtWidgets.QGraphicsScene):
         if not isinstance(peek, str):
             peek = peek.toLocalFile()
         self.reset_undo_stack()
-        if os.path.isdir(peek):
-            if self.directory == '':
-                # strip off trailing sep from path
-                osx_hack = os.path.join(peek, 'OSX')
-                self.directory = os.path.split(osx_hack)[0]
-                # end
-                self.directory_set.emit(self.directory)
-                files = glob.glob(os.path.join(self.directory, '*'))
-                image_format = [".jpg", ".jpeg", ".png", ".tif"]
-                f = (lambda x: os.path.splitext(x)[1].lower() in image_format)
-                image_list = list(filter(f, files))
-                image_list = sorted(image_list)
-                self.load_images(image_list)
-            else:
-                message_box = QtWidgets.QMessageBox(self.parent())
-                message_box.setText("Warning")
-                message_box.setInformativeText('Working directory already set. Change current project?')
-                message_box.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
-                message_box.setDefaultButton(QtWidgets.QMessageBox.Cancel)
-                ret = message_box.exec()
-                if ret == QtWidgets.QMessageBox.Cancel:
-                    return
-                else:
-                    self.reset()
-                    self.load(drop_list)
-        elif ".pnt" in peek:
+        image_format = [".jpg", ".jpeg", ".png", ".tif"]
+        f = (lambda x: os.path.splitext(x)[1].lower() in image_format)
+        if os.path.isdir(peek): # direcotry
+            # strip off trailing sep from path
+            osx_hack = os.path.join(peek, 'OSX')
+            self.directory = os.path.split(osx_hack)[0]
+            # end
+            self.directory_set.emit(self.directory)
+            files = glob.glob(os.path.join(self.directory, '*'))
+            image_list = sorted(list(filter(f, files)))
+            self.load_images(image_list)
+        elif ".pnt" in os.path.splitext(peek)[1]: # point file
             if os.path.exists(peek):
                 self.reset()
                 self.load_points_from_file(peek)
@@ -444,42 +454,22 @@ class Canvas(QtWidgets.QGraphicsScene):
                 message = peek + " not found"
                 QtWidgets.QMessageBox.warning(self.parent(), 'Warning', message, QtWidgets.QMessageBox.Ok)
                 return
-        else:
+        else: # images
             base_path = os.path.split(peek)[0]
-            for entry in drop_list:
-                if not isinstance(entry, str):
-                    file_name = entry.toLocalFile()
+            image_list = []
+            for drop in drop_list:
+                if type(drop) == QtCore.QUrl:
+                    nf = drop.toLocalFile()
                 else:
-                    file_name = entry
-                path = os.path.split(file_name)[0]
-                message = ''
-                if os.path.isdir(file_name):
-                    message = 'Mix of files and directories detected. Load canceled.'
-                    QtWidgets.QMessageBox.warning(self.parent(), 'Warning', message, QtWidgets.QMessageBox.Ok)
-                    return
-                if base_path != path:
-                    message = 'Files from multiple directories detected. Load canceled.'
-                    QtWidgets.QMessageBox.warning(self.parent(), 'Warning', message, QtWidgets.QMessageBox.Ok)
-                    return
-                if self.directory != '' and self.directory != path:
-                    message_box = QtWidgets.QMessageBox(self.parent())
-                    message_box.setText("Warning")
-                    message_box.setInformativeText('Working directory already set. Change current project?')
-                    message_box.setStandardButtons(QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Cancel)
-                    message_box.setDefaultButton(QtWidgets.QMessageBox.Cancel)
-                    ret = message_box.exec()
-                    if ret == QtWidgets.QMessageBox.Cancel:
-                        return
-                    else:
-                        self.reset()
-                        self.load(drop_list)
+                    nf = drop
+                image_list.append(nf)
+            image_list = sorted(list(filter(f, image_list)))
             self.directory = base_path
             self.directory_set.emit(self.directory)
-            self.load_images(drop_list)
+            self.load_images(image_list)
 
     def load_image(self, in_file_name):
         self.reset_undo_stack()
-        Image.MAX_IMAGE_PIXELS = 1000000000
         file_name = in_file_name
         if type(file_name) == QtCore.QUrl:
             file_name = in_file_name.toLocalFile()
@@ -497,44 +487,42 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.directory = os.path.split(file_name)[0]
             self.directory_set.emit(self.directory)
 
-        if self.directory == os.path.split(file_name)[0]:
-            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-            self.selection = []
-            self.clear()
-            self.current_image_name = os.path.split(file_name)[1]
-            if self.current_image_name not in self.points.keys():
-                self.points[self.current_image_name] = {}
-            if self.current_image_name not in self.pcb_info.keys():
-                self.pcb_info[self.current_image_name] = {"x":"", "y":""}
-            # try:
+        # check if the image is already in the zipfle
+        img_in_pnts_file = False
+        if ".pnts" in self.directory:
+            with ZipFile(self.directory, 'r') as z:
+                if image in z.namelist(): img_in_pnts_file = True
+
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        self.selection = []
+        self.clear()
+        self.current_image_name = image
+        if self.current_image_name not in self.points.keys():
+            self.points[self.current_image_name] = {}
+        if self.current_image_name not in self.pcb_info.keys():
+            self.pcb_info[self.current_image_name] = {"x":"", "y":""}
+        self.full_image_names[image] = in_file_name
+        if img_in_pnts_file:
+            # file is in zp file under the image name
+            with ZipFile(self.directory, 'r') as z:
+                img = Image.open(io.BytesIO(z.read(image)))
+                channels = len(img.getbands())
+                array = np.array(img)
+                img.close()
+        else:
             img = Image.open(file_name)
             channels = len(img.getbands())
             array = np.array(img)
-            array = np.array(array[1:-1, 1:-1, ...]) # necessary bugfix for some images. Qt cannot add the pixmap if this line is removed
             img.close()
-            if channels == 1:
-                self.qt_image = QtGui.QImage(array.data, array.shape[1], array.shape[0], QtGui.QImage.Format_Grayscale8)
-            else:
-                # Apply basic min max stretch to the image
-                for chan in range(channels):
-                    array[:, :, chan] = np.interp(array[:, :, chan], (array[:, :, chan].min(), array[:, :, chan].max()), (0, 255))
-                bpl = int(array.nbytes / array.shape[0])
-                if array.shape[2] == 4:
-                    self.qt_image = QtGui.QImage(array.data, array.shape[1], array.shape[0], QtGui.QImage.Format_RGBA8888)
-                else:
-                    self.qt_image = QtGui.QImage(array.data, array.shape[1], array.shape[0], bpl, QtGui.QImage.Format_RGB888)
-            self.pixmap = QtGui.QPixmap.fromImage(self.qt_image)
-            self.addPixmap(self.pixmap)
-            # except FileNotFoundError:
-            #     QtWidgets.QMessageBox.critical(None, 'File Not Found', '{} is not in the same folder as the point file.'.format(self.current_image_name))
-            #     self.image_loaded.emit(self.directory, self.current_image_name)
-            self.image_loaded.emit(self.directory, self.current_image_name)
-            if self.edit_style == EditStyle.POINTS:
-                self.display_points()
-            elif self.edit_style == EditStyle.RECTS:
-                self.display_measures()
-            self.display_grid()
-            QtWidgets.QApplication.restoreOverrideCursor()
+        pixmap = pixmap_from_image_array(array, channels)
+        self.addPixmap(pixmap)
+        self.image_loaded.emit(self.directory, self.current_image_name)
+        if self.edit_style == EditStyle.POINTS:
+            self.display_points()
+        elif self.edit_style == EditStyle.RECTS:
+            self.display_measures()
+        self.display_grid()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def load_images(self, images):
         self.set_changed(True)
@@ -542,14 +530,12 @@ class Canvas(QtWidgets.QGraphicsScene):
             file_name = f
             if type(f) == QtCore.QUrl:
                 file_name = f.toLocalFile()
-
             image_name = os.path.split(file_name)[1]
             if image_name not in self.points:
                 self.points[image_name] = {}
         if len(images) > 0:
             for img in images:
                 self.load_image(img)
-                # self.load_image(images[0])
 
     def apply_points(self, data):
         self.survey_id = data['metadata']['survey_id']
@@ -611,22 +597,33 @@ class Canvas(QtWidgets.QGraphicsScene):
     def load_points_from_file(self, file_name):
         import os
         self.reset()
-        file = open(file_name, 'r')
-        data = json.load(file)
-        directory = os.path.split(file_name)[0]
-        self.directory = directory
+        _, suffix = os.path.splitext(file_name)
+        is_pnt = suffix == ".pnt"
+        is_pnts = suffix == ".pnts"
+        if is_pnt:
+            with open(file_name, 'r') as f:
+                data = json.load(f)
+            directory = os.path.split(file_name)[0]
+            self.directory = directory
+            self.full_image_names = {img:os.path.join(self.directory, img) for img in data["points"]}
+        elif is_pnts:
+            self.directory = file_name
+            with ZipFile(file_name, "r") as z:
+                basename = os.path.basename(file_name).replace(".pnts", ".pnt")
+                data = json.loads(z.read(basename))
+            self.full_image_names = {img:img for img in data["points"]}
         self.directory_set.emit(self.directory)
-
         self.apply_points(data)
-
         self.points_loaded.emit(file_name)
         self.fields_updated.emit()
         path = os.path.split(file_name)[0]
         if self.points.keys():
-            path = os.path.join(path, list(self.points.keys())[0])
+            if is_pnt:
+                path = os.path.join(path, list(self.points.keys())[0])
+            else:
+                path = list(self.points.keys())[0]
             self.load_image(path)
         recentlyUsed.add_file(file_name)
-        file.close()
         self.reset_undo_stack()
 
     def reset_undo_stack(self):
@@ -962,13 +959,13 @@ class Canvas(QtWidgets.QGraphicsScene):
 
         self.directory = ''
         self.current_image_name = None
+        self.full_image_names = {}
         self.ecus = {}
         self.aliases = {}
         self.current_class_name = None
         self.current_category_name = None
         self.current_selection = None
 
-        self.qt_image = None
         self.show_grid = True
 
         self.selected_pen = QtGui.QPen(QtGui.QBrush(QtCore.Qt.red, QtCore.Qt.SolidPattern), 1)
@@ -990,16 +987,26 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.pcb_info[self.current_image_name].update({"x":x, "y":y})
 
     def save_points(self, file_name):
-        try:
-            output = self.package_points()
-            file = open(file_name, 'w')
-            json.dump(output, file)
-            file.close()
-            completion.write(AutoCompleteFile.DEFAULTFILE)
-            self.points_saved.emit(file_name)
-            self.set_changed(False)
-        except OSError:
-            return False
+        import shutil
+        _, ext = os.path.splitext(file_name)
+        output = self.package_points()
+        # try:
+        if ext == ".pnt":
+            with open(file_name, 'w') as f:
+                json.dump(output, f)
+        elif ext == ".pnts":
+            basename = os.path.basename(file_name)
+            with ZipFile(file_name, "w") as z:
+                z.writestr(basename.replace(".pnts", ".pnt"), json.dumps(output))
+                for img in self.points:
+                    z.write(self.full_image_names[img], img)
+            self.directory = file_name
+            self.directory_set.emit(self.directory)
+        completion.write(AutoCompleteFile.DEFAULTFILE)
+        self.points_saved.emit(file_name)
+        self.set_changed(False)
+        # except OSError:
+        #     return False
         return True
 
     def select_points(self, rect):

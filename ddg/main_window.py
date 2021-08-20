@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         self.quickSaveAction.triggered.connect(self._centralWidget.point_widget.quick_save)
         self.openAction = QAction("Open Project/Points", self)
         self.openAction.triggered.connect(self.load)
-        self.addImageAction = QAction("Add Image to ECU...", self)
+        self.addImageAction = QAction("Add Image to Project...", self)
         self.addImageAction.triggered.connect(self.load_image)
 
         self.resetAction = QAction("Reset All", self)

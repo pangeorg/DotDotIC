@@ -1,7 +1,0 @@
-ECU;PCB;Short Description;Component Description;Top;Bottom;Manufacturer;Partnumber;Marking;Relevant Marking;Package;Placement;Unit;IO/Pin Count;Diameter;Length;Width;Height;Metrik
-ECU 1;PCB 1;Capacitor #1;Desc;25;0;Avago;Partnumber;Marking;;0603;THT solder;;22;3;1;2;4;Display
-ECU 1;PCB 1;Capacitor #2;;5;0;;;;;;SMD large;;;;;;;
-ECU 1;PCB 1;Capacitor #3;;0;0;;;;;;;;;;;;;
-ECU 1;PCB;Capacitor #1;Desc;0;0;Avago;Partnumber;Marking;;0603;THT solder;;22;3;1;2;4;Display
-ECU 1;PCB;Capacitor #2;;0;0;;;;;;SMD large;;;;;;;
-ECU 1;PCB;Capacitor #3;;0;0;;;;;;;;;;;;;
