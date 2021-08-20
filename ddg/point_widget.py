@@ -434,14 +434,9 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
     def rename(self, index, category, classname, new_category, new_classname):
         column = index.column()
         row = index.row()
-        # class_name, ok = QtWidgets.QInputDialog.getText(self, 'New name', 'Enter New Name')
         if new_category == category and new_classname == classname:
             self.inputDialog.close()
             return
-        # if new_classname in self.canvas.classes and new_category in self.canvas.categories:
-        #     dialog = QtWidgets.QMessageBox.question(self, "Choose different names", "Category/Component "+ new_category + "/" + new_classname +" already taken", QtWidgets.QMessageBox.Ok)
-        #     self.inputDialog.close()
-        #     return
         if column == 0 and new_category != "":
             is_expanded = self.classTree.isExpanded(index)
             self.classTree.selectionModel().clear()
@@ -458,9 +453,6 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                     for c in classes:
                         self.canvas.move_class(c, category, new_category)
                     self.canvas.remove_category(category)
-                    # dialog = QtWidgets.QMessageBox.question(self, "Choose different names", "Category/Component "+ new_category + "/" + new_classname +" already taken", QtWidgets.QMessageBox.Ok)
-                    # self.inputDialog.close()
-                    # return
             elif new_category != category and new_classname != "": # rename category and class
                 if new_category not in self.canvas.categories:
                     self.canvas.add_category(new_category)

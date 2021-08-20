@@ -1,6 +1,8 @@
 #!/env python
 import os
 from glob import glob
+import sys
+import shutil
 
 USE_SPEC = True
 ONLY_UI = False
@@ -20,7 +22,9 @@ NOUPX = True
 
 for f in glob(".\\ddg\\ui\\*.ui"):
     os.system("pyuic5 {} -o {}".format(f, f.replace(".ui", "_ui.py")))
-    
+
+args = sys.argv[1:]    
+
 if not ONLY_UI:
     if not USE_SPEC:
 
@@ -40,3 +44,8 @@ if not ONLY_UI:
     else:
         call = "pyinstaller " + SPEC + " --onefile --noupx"
     os.system(call)
+
+if "dev" in args:
+    shutil.move("dist/DotDotIC.exe", "dist/DotDotIC_dev.exe")
+elif "release" in args:
+    shutil.move("dist/DotDotIC.exe", "dist/DotDotIC_release.exe")

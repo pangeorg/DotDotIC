@@ -439,11 +439,32 @@ class Canvas(QtWidgets.QGraphicsScene):
         if os.path.isdir(peek): # direcotry
             # strip off trailing sep from path
             osx_hack = os.path.join(peek, 'OSX')
-            self.directory = os.path.split(osx_hack)[0]
-            # end
-            self.directory_set.emit(self.directory)
+            directory = os.path.split(osx_hack)[0]
             files = glob.glob(os.path.join(self.directory, '*'))
             image_list = sorted(list(filter(f, files)))
+            ignore_message = False
+            for img in image_list:
+                basename = os.path.basename(img)
+                if basename in self.points.keys(): 
+                    if not ignore_message:
+                        message = """
+                                    <h1> Import Failed </h1>
+                                    <p> You already imported a file {} </p> 
+                                    <p> Ignore File? </p>""".format(basename)
+                        msg_box = QtWidgets.QMessageBox(self.parent())
+                        msg_box.setTextFormat(QtCore.Qt.RichText)
+                        msg_box.setWindowTitle('ERROR')
+                        msg_box.setText(message)
+                        msg_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.YesToAll )
+                        msg_box.setDefaultButton(QtWidgets.QMessageBox.Yes)
+                        response = msg_box.exec()
+                        if response == QtWidgets.QMessageBox.Yes:
+                            continue
+                        else:
+                            ignore_message = True
+                    image_list.pop(image_list.index(img))
+            self.directory = directory
+            self.directory_set.emit(self.directory)
             self.load_images(image_list)
         elif ".pnt" in os.path.splitext(peek)[1]: # point file
             if os.path.exists(peek):
