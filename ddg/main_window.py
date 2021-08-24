@@ -267,7 +267,8 @@ class MainWindow(QMainWindow):
         self._centralWidget.canvas.set_edit_style(EditStyle.RECTS)
 
     def update_title(self, filename):
-        self.setWindowTitle("{:} --- {:}".format(_TITLE_STRING, filename))
+        if not "autosave" in filename:
+            self.setWindowTitle("{:} --- {:}".format(_TITLE_STRING, filename))
 
     def check_save(self):
         if not self._centralWidget.canvas.get_changed():

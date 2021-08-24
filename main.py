@@ -34,4 +34,9 @@ if __name__ == '__main__':
     screen = app.desktop().availableGeometry()
     app.installTranslator(translator.translator)
     main = MainWindow(screen=screen)
+    if len(sys.argv[1:]) > 0:
+        arg = str(sys.argv[1])
+        if ".pnt" in arg:
+            main.load_points(arg)
+
     sys.exit(app.exec_())

@@ -182,6 +182,32 @@ class ECUInputDialog(QDialog, ECU_DIALOG):
             return 1
         return 0
 
+class PointSaver(QtCore.QThread):
+    def __init__(self, filename, packaged_points, pixmaps):
+        QtCore.QThread.__init__(self)
+        self.filename = filename
+        self.packaged_points = packaged_points
+        self.pixmaps = pixmaps
+
+    def run(self):
+        _, ext = os.path.splitext(self.filename)
+        if ext == ".pnt":
+            with open(self.filename, 'w') as f:
+                json.dump(self.packaged_points, f)
+        elif ext == ".pnts":
+            basename = os.path.basename(self.filename)
+            pntname = basename.replace(".pnts", ".pnt")
+            dirname = os.path.dirname(self.filename)
+            with ZipFile(self.filename, "w") as z:
+                z.writestr(pntname, json.dumps(self.packaged_points))
+                for img, px in self.pixmaps.values():
+                    _, ext = os.path.splitext(img)
+                    savename = os.path.join(dirname, str(hash(img)) + ext)
+                    image = Image.fromqpixmap(px)
+                    image.save(savename)
+                    z.write(savename, img)
+                    os.remove(savename)
+
 class Canvas(QtWidgets.QGraphicsScene):
     image_loaded = QtCore.pyqtSignal(str, str)
     points_loaded = QtCore.pyqtSignal(str)
@@ -241,9 +267,10 @@ class Canvas(QtWidgets.QGraphicsScene):
         active_brush = QtGui.QBrush(active_color, QtCore.Qt.SolidPattern)
         active_pen = QtGui.QPen(active_brush, 2)
         self.points[self.current_image_name][self.current_class_name].append(point)
-        count = 0
-        for image in self.points.keys():
-            count += len(self.points[image][self.current_class_name])
+        # count = 0
+        # for image in self.points.keys():
+        #     count += len(self.points[image][self.current_class_name])
+        count = len(self.points[self.current_image_name][self.current_class_name])
         self.addEllipse(QtCore.QRectF(point.x() - ((display_radius - 1) / 2), point.y() - ((display_radius - 1) / 2), display_radius, display_radius), active_pen, active_brush)
         self.update_point_count.emit(self.current_image_name, self.current_class_name, count)
 
@@ -440,7 +467,7 @@ class Canvas(QtWidgets.QGraphicsScene):
             # strip off trailing sep from path
             osx_hack = os.path.join(peek, 'OSX')
             directory = os.path.split(osx_hack)[0]
-            files = glob.glob(os.path.join(self.directory, '*'))
+            files = glob.glob(os.path.join(peek, '*'))
             image_list = sorted(list(filter(f, files)))
             ignore_message = False
             for img in image_list:
@@ -489,7 +516,19 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.directory_set.emit(self.directory)
             self.load_images(image_list)
 
-    def load_image(self, in_file_name):
+    def load_image(self, image):
+        self.selection = []
+        self.clear()
+        self.current_image_name = image
+        self.addPixmap(self.pixmaps[image])
+        self.image_loaded.emit(self.directory, self.current_image_name)
+        if self.edit_style == EditStyle.POINTS:
+            self.display_points()
+        elif self.edit_style == EditStyle.RECTS:
+            self.display_measures()
+        self.display_grid()
+
+    def load_image_from_file(self, in_file_name):
         self.reset_undo_stack()
         file_name = in_file_name
         if type(file_name) == QtCore.QUrl:
@@ -537,6 +576,7 @@ class Canvas(QtWidgets.QGraphicsScene):
             img.close()
         pixmap = pixmap_from_image_array(array, channels)
         self.addPixmap(pixmap)
+        self.pixmaps[image] = pixmap
         self.image_loaded.emit(self.directory, self.current_image_name)
         if self.edit_style == EditStyle.POINTS:
             self.display_points()
@@ -556,7 +596,7 @@ class Canvas(QtWidgets.QGraphicsScene):
                 self.points[image_name] = {}
         if len(images) > 0:
             for img in images:
-                self.load_image(img)
+                self.load_image_from_file(img)
 
     def apply_points(self, data):
         self.survey_id = data['metadata']['survey_id']
@@ -637,13 +677,13 @@ class Canvas(QtWidgets.QGraphicsScene):
         self.apply_points(data)
         self.points_loaded.emit(file_name)
         self.fields_updated.emit()
-        path = os.path.split(file_name)[0]
-        if self.points.keys():
+        dirname = os.path.split(file_name)[0]
+        for img in self.points.keys():
             if is_pnt:
-                path = os.path.join(path, list(self.points.keys())[0])
+                path = os.path.join(dirname, img)
             else:
-                path = list(self.points.keys())[0]
-            self.load_image(path)
+                path = img
+            self.load_image_from_file(path)
         recentlyUsed.add_file(file_name)
         self.reset_undo_stack()
 
@@ -910,16 +950,19 @@ class Canvas(QtWidgets.QGraphicsScene):
             for image in images:
                 del self.points[image]
                 del self.pcb_info[image]
+                del self.pixmaps[image]
         elif n == 2:
             images = list(self.ecus[nodes[0]][nodes[1]].values())
             for image in images:
                 del self.points[image]
                 del self.pcb_info[image]
+                del self.pixmaps[image]
             del self.ecus[nodes[0]][nodes[1]]
         else:
             image = self.ecus[nodes[0]][nodes[1]][nodes[2]]
             del self.points[image]
             del self.pcb_info[image]
+            del self.pixmaps[image]
             del self.ecus[nodes[0]][nodes[1]][nodes[2]]
         if self.current_image_name not in self.points:
             self.current_image_name = None
@@ -981,6 +1024,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         self.directory = ''
         self.current_image_name = None
         self.full_image_names = {}
+        self.pixmaps = {}
         self.ecus = {}
         self.aliases = {}
         self.current_class_name = None
@@ -1008,26 +1052,33 @@ class Canvas(QtWidgets.QGraphicsScene):
             self.pcb_info[self.current_image_name].update({"x":x, "y":y})
 
     def save_points(self, file_name):
-        import shutil
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        if isinstance(file_name, (tuple, list)):
+            file_name = file_name[0]
         _, ext = os.path.splitext(file_name)
         output = self.package_points()
-        # try:
         if ext == ".pnt":
             with open(file_name, 'w') as f:
                 json.dump(output, f)
         elif ext == ".pnts":
             basename = os.path.basename(file_name)
+            pntname = basename.replace(".pnts", ".pnt")
+            dirname = os.path.dirname(file_name)
             with ZipFile(file_name, "w") as z:
-                z.writestr(basename.replace(".pnts", ".pnt"), json.dumps(output))
-                for img in self.points:
-                    z.write(self.full_image_names[img], img)
+                z.writestr(pntname, json.dumps(output))
+                for img, px in self.pixmaps.items():
+                    _, ext = os.path.splitext(img)
+                    savename = os.path.join(dirname, str(hash(img)) + ext)
+                    image = Image.fromqpixmap(px)
+                    image.save(savename)
+                    z.write(savename, img)
+                    os.remove(savename)
             self.directory = file_name
             self.directory_set.emit(self.directory)
         completion.write(AutoCompleteFile.DEFAULTFILE)
         self.points_saved.emit(file_name)
         self.set_changed(False)
-        # except OSError:
-        #     return False
+        QtWidgets.QApplication.restoreOverrideCursor()
         return True
 
     def select_points(self, rect):

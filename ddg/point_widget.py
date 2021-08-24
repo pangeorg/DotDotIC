@@ -310,15 +310,16 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
     def export_counts(self):
         file_name = QtWidgets.QFileDialog.getSaveFileName(self, 'Export Count Summary', os.path.join(self.canvas.directory, 'counts.csv'), 'Excel Sheet (*.csv)')
         if file_name[0] != '':
-            if not open(file_name[0], "r").closed:
+            try:    
+                self.canvas.export_counts(file_name[0])
+            except IOError:
                 msg = QtWidgets.QMessageBox()
                 msg.setIcon(QtWidgets.QMessageBox.Critical)
                 msg.setText("Write - Error")
                 msg.setInformativeText('File open in another program. Please close file and retry')
                 msg.setWindowTitle("Error")
                 msg.exec_()
-                return 
-            self.canvas.export_counts(file_name[0])
+                return
 
     def export_points(self):
         file_name = QtWidgets.QFileDialog.getSaveFileName(self, 'Export Points', os.path.join(self.canvas.directory, 'points.csv'), 'Text CSV (*.csv)')
@@ -528,9 +529,16 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
 
     
     def autosave(self):
-        filename = os.path.dirname(self.canvas.directory, "autosave.pnts")
-        self.saving.emit()
-        self.save(file_name=filename)
+        if len(list(self.canvas.points.keys())) and self.canvas.directory != "":
+            directory = self.canvas.directory
+            filename = self.previous_file_name
+            _, ext = os.path.splitext(filename)
+            filename = filename.replace(ext, "")
+            if ".pnts" in directory:
+                directory = os.path.dirname(directory)
+            filename = os.path.join(directory, filename + "_autosave.pnts")
+            self.saving.emit()
+            self.save(file_name=filename)
 
     def set_autosave(self):
         self.timer = QtCore.QTimer()
@@ -540,7 +548,11 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
 
     def quick_save(self):
         self.saving.emit()
-        self.save(file_name=self.previous_file_name)
+        if self.previous_file_name == "":
+            previous_file_name = None
+        else:
+            previous_file_name = self.previous_file_name
+        self.save(file_name=previous_file_name)
 
     def save(self, override=False, file_name=None):
         import shutil
@@ -551,9 +563,12 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
             defaultname = os.path.join(self.canvas.directory, 'untitled')
         if file_name is None:
             file_name = QtWidgets.QFileDialog.getSaveFileName(self, 'Save Points', defaultname, 'Single Point File (*.pnts);;Point File (*.pnt)')
-        if file_name[0] != '':
-            if ".pnts" in file_name[0]: is_pnts = True
-            self.previous_file_name = file_name[0]
+        if isinstance(file_name, tuple):
+            file_name = file_name[0]
+        if file_name != '':
+            if ".pnts" in file_name: is_pnts = True
+            if not "autosave" in file_name: 
+                self.previous_file_name = file_name
             # check if files are in different folders
             full_image_names = self.canvas.full_image_names.values()
             dirnames = set([os.path.dirname(f) for f in full_image_names])
@@ -570,7 +585,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                 msg_box.setDefaultButton(QtWidgets.QMessageBox.Cancel)
                 response = msg_box.exec()
                 if response == QtWidgets.QMessageBox.Save:
-                    dirname = os.path.dirname(file_name[0])
+                    dirname = os.path.dirname(file_name)
                     for img, f in self.canvas.full_image_names.items():
                         dest = os.path.join(dirname, img)
                         try:
@@ -580,7 +595,7 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                     self.canvas.full_image_names = {img:os.path.join(dirname, img) for img in self.canvas.points.keys()}
                     self.save(True, file_name=file_name)
             else:
-                if self.canvas.save_points(file_name[0]) is False:
+                if self.canvas.save_points(file_name) is False:
                     msg_box = QtWidgets.QMessageBox()
                     msg_box.setWindowTitle('ERROR')
                     msg_box.setText('Save Failed!')
@@ -638,8 +653,8 @@ class PointWidget(QtWidgets.QWidget, WIDGET):
                 ecu_name = item.parent().parent().text()
                 pcb_name = item.parent().text()
                 image = self.canvas.ecus[ecu_name][pcb_name][text]
-                path = os.path.join(self.canvas.directory, image)
-                self.canvas.load_image(path)
+                # path = os.path.join(self.canvas.directory, image)
+                self.canvas.load_image(image)
 
     def selection_changed(self, selected, deselected):
         if len(selected.indexes()) > 0:

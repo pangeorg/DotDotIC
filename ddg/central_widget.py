@@ -331,10 +331,11 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         self.comboBox_metrik.setCurrentText("")
         metrik_completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
 
-        placement_completer = QtWidgets.QCompleter(completion.placement)
+        placement_list = list(sorted(completion.placement))
+        placement_completer = QtWidgets.QCompleter(sorted(placement_list))
         placement_completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.comboBox_placement.lineEdit().setCompleter(placement_completer)
-        self.comboBox_placement.addItems(completion.placement)
+        self.comboBox_placement.addItems(placement_list)
         self.comboBox_placement.setCurrentText("")
         placement_completer.setCompletionMode(QtWidgets.QCompleter.PopupCompletion)
 

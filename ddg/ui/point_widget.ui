@@ -29,13 +29,6 @@
     </layout>
    </item>
    <item>
-    <widget class="QCheckBox" name="checkBoxImageFields">
-     <property name="text">
-      <string>Hide Component Details</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QSplitter" name="splitter">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -155,6 +148,13 @@
       <property name="bottomMargin">
        <number>0</number>
       </property>
+      <item>
+       <widget class="QCheckBox" name="checkBoxImageFields">
+        <property name="text">
+         <string>Hide Component Details</string>
+        </property>
+       </widget>
+      </item>
       <item>
        <layout class="QGridLayout" name="gridLayout">
         <item row="0" column="0">
