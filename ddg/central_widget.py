@@ -27,7 +27,7 @@ import sys
 from itertools import cycle
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from ddg import Canvas
+from ddg import Canvas, SearchDialog
 from ddg.canvas import EditStyle, Scale, completion
 from ddg import PointWidget
 from .ui.central_widget_ui import Ui_CentralWidget as CLASS_DIALOG
@@ -209,6 +209,7 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
         self.graphicsView.scale_selected.connect(self.set_scale)
         self.graphicsView.select_class.connect(self.point_widget.select_tree_item_from_name)
         self.graphicsView.add_class.connect(lambda: self.point_widget.add_class(askname=False))
+        self.graphicsView.search.connect(self.search)
 
         self.graphicsView.add_point.connect(self.canvas.add_point)
         self.graphicsView.display_pointer_coordinates.connect(self.display_pointer_coordinates)
@@ -543,3 +544,7 @@ class CentralWidget(QtWidgets.QDialog, CLASS_DIALOG):
 
     def set_survey_id(self):
         self.canvas.survey_id = self.point_widget.lineEditSurveyId.text()
+
+    def search(self):
+        dialog = SearchDialog(self)
+        dialog.exec_()

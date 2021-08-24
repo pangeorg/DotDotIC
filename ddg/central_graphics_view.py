@@ -40,6 +40,7 @@ class CentralGraphicsView(QtWidgets.QGraphicsView):
     delete_selection = QtCore.pyqtSignal()
     clear_selection = QtCore.pyqtSignal()
     relabel_selection = QtCore.pyqtSignal()
+    search = QtCore.pyqtSignal()
     toggle_points = QtCore.pyqtSignal()
     toggle_grid = QtCore.pyqtSignal()
     switch_class = QtCore.pyqtSignal(int)
@@ -89,6 +90,8 @@ class CentralGraphicsView(QtWidgets.QGraphicsView):
            self.m = True
         elif key == QtCore.Qt.Key_Delete or key == QtCore.Qt.Key_Backspace:
             self.delete_selection.emit()
+        elif key == QtCore.Qt.Key_F and self.ctrl:
+            self.search.emit()
         elif key == QtCore.Qt.Key_R:
             self.relabel_selection.emit()
         elif key == QtCore.Qt.Key_D:
