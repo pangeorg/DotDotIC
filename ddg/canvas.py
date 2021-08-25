@@ -670,7 +670,7 @@ class Canvas(QtWidgets.QGraphicsScene):
         elif is_pnts:
             self.directory = file_name
             with ZipFile(file_name, "r") as z:
-                basename = os.path.basename(file_name).replace(".pnts", ".pnt")
+                basename = "data.pnt"
                 data = json.loads(z.read(basename))
             self.full_image_names = {img:img for img in data["points"]}
         self.directory_set.emit(self.directory)
@@ -1061,8 +1061,7 @@ class Canvas(QtWidgets.QGraphicsScene):
             with open(file_name, 'w') as f:
                 json.dump(output, f)
         elif ext == ".pnts":
-            basename = os.path.basename(file_name)
-            pntname = basename.replace(".pnts", ".pnt")
+            pntname = "data.pnt"
             dirname = os.path.dirname(file_name)
             with ZipFile(file_name, "w") as z:
                 z.writestr(pntname, json.dumps(output))
