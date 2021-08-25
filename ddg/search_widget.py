@@ -18,6 +18,7 @@ class SearchDialog(QDialog, DIALOG):
         self.cancelButton.clicked.connect(self.close)
         self.tableWidget.horizontalHeader().setStretchLastSection(True)
         self.tableWidget.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.setWindowTitle("Search")
 
     def search_data(self, term):
         canvas = self.central_widget.canvas
@@ -41,12 +42,16 @@ class SearchDialog(QDialog, DIALOG):
         nrows = len(result.keys())
         self.tableWidget.setRowCount(nrows)
         keys = list(result.keys())
+        flags = QtCore.Qt.ItemFlags()
+        flags != QtCore.Qt.ItemIsEditable
         for ir, k in enumerate(keys):
             info = result[k]
             newitem = QTableWidgetItem(str(k))
+            newitem.setFlags(flags)
             self.tableWidget.setItem(ir, 0, newitem)
             for ic in range(1, 3):
                 newitem = QTableWidgetItem(info[ic-1])
+                newitem.setFlags(flags)
                 self.tableWidget.setItem(ir, ic, newitem)
         self.tableWidget.setHorizontalHeaderLabels(["Component Name", "Attribute", "Search Result"])
 
@@ -54,6 +59,6 @@ class SearchDialog(QDialog, DIALOG):
         if len(self.searchEdit.text()):
             res = self.search_data(self.searchEdit.text())
             self.fill_table(res)
-        self.tableWidget.resizeColumnsToContents()
-        self.tableWidget.resizeRowsToContents()
-        self.tableWidget.horizontalHeader().setStretchLastSection(True)
+            self.tableWidget.resizeColumnsToContents()
+            self.tableWidget.resizeRowsToContents()
+            self.tableWidget.horizontalHeader().setStretchLastSection(True)

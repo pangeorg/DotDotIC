@@ -436,13 +436,14 @@ class Canvas(QtWidgets.QGraphicsScene):
                         row = [ecu_name, pcb_name, category, attr["Description"], count_top, count_bot, attr['Manufacturer'], 
                             attr["Partnumber"], attr["Marking"], "", attr["Package"], attr["Placement"], "", attr["IO/Pin Count"], attr["Diameter"], 
                             attr["Length"], attr["Width"], attr["Height"], attr["Metrik"]]
+                        row = [str(r).strip() for r in row]
                         rows.append(row)
         return rows
 
     def export_counts(self, file_name):
         import csv
         rows = self.prepare_export_counts()
-        with open(file_name, "w", newline="") as f:
+        with open(file_name, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f, delimiter=";")
             writer.writerow(rows[0])
             for row in rows[1:]:

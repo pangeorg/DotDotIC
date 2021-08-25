@@ -74,6 +74,6 @@ class TableView(QDialog):
     def setData(self): 
         for ir in range(1, self.nrows):
             for ic in range(self.ncols):
-                newitem = QTableWidgetItem(str(self.data[ir][ic]), QtCore.Qt.ItemIsSelectable)
+                newitem = QTableWidgetItem(str(self.data[ir][ic]).strip(), QtCore.Qt.ItemIsSelectable)
                 self.table.setItem(ir - 1, ic, newitem)
         self.table.setHorizontalHeaderLabels(self.data[0])
